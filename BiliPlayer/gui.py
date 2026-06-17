@@ -126,7 +126,7 @@ class RightSideProgress(QWidget):
         screen = QApplication.primaryScreen().geometry()
         scr_w = screen.width()
         scr_h = screen.height()
-        win_width = 24
+        win_width = 40
         win_height = scr_h
         win_x = scr_w - win_width
         win_y = 0
@@ -192,19 +192,24 @@ class RightSideProgress(QWidget):
             margin: 0px;
             padding: 0px;
         }
+        /* 小电视默认状态 */
         QSlider::handle:vertical {
-            background: #ffffff;
-            width: 18px;
+            image: url(BiliPlayer/resources/bilitv.png);
+            width: 20px;
             height: 18px;
-            border-radius: 9px;
-            margin: 0 0 0 -6px;
+            border-radius: 10px;
+            /* 向左偏移，对齐6px轨道 */
+            margin: 0 0 0 -11px;
             padding: 0px;
+            background: transparent;
         }
+        /* 鼠标悬浮小电视 */
         QSlider::handle:vertical:hover {
-            background: #ff1111;
+            image: url(BiliPlayer/resources/bilitv_hover.png);
         }
+        /* 鼠标按住小电视 */
         QSlider::handle:vertical:pressed {
-            background: #cc0000;
+            image: url(BiliPlayer/resources/bilitv_pressed.png);
         }
         """)
 
