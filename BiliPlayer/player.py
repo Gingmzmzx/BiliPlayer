@@ -1,6 +1,7 @@
 import asyncio
 import random
-from playwright.async_api import Browser, Page
+from playwright.async_api import Browser
+
 from .config import DEBUG_FLG
 from .utils import prt
 
@@ -45,10 +46,17 @@ class BiliMusicPlayer:
         self.duration: float = 0
         self.cur: float = 0
         self.sep_page = sep_page
+        self.random_cur = 0
 
     def get_random_next(self) -> str:
-        available = [bv for bv in self.bv_list if bv != self.current_bv]
-        return random.choice(available if available else self.bv_list)
+        if self.random_cur < len(self.bv_list):
+            self.random_cur += 1
+            return self.bv_list[self.random_cur-1]
+        random.shuffle(self.bv_list)
+        while self.bv_list[0] == self.current_bv:
+            random.shuffle(self.bv_list)
+        self.random_cur = 1
+        return self.bv_list[0]
 
     def _on_timeupdate(self, cur, total):
         # prt(f"Time update: {cur:.2f} / {total:.2f}")
@@ -96,7 +104,7 @@ class BiliMusicPlayer:
     async def play(self, bvid=None):
         # Init page
         if self.sep_page:
-            self.page: Page = await self.browser.new_page()
+            self.page = await self.browser.new_page()
             prt("Page Created")
             await self.page.expose_function("biliMusic_on_timeupdate", self._on_timeupdate)
             await self.page.expose_function("biliMusic_on_ended", self._on_ended)
@@ -137,7 +145,7 @@ class BiliMusicPlayer:
                 if self.sep_page:
                     await self.page.close()
                     prt("Close Page")
-                await self.play(self.get_random_next())
+                await self.play()
                 break
             if self.state.toggle_pause:
                 self.state.toggle_pause = False
@@ -178,7 +186,14 @@ async def test():
         args=["--autoplay-policy=no-user-gesture-required", "--no-sandbox"]
     )
     BV_LIST = ["BVxxxxxxxxxxx"]
-    biliMusic = BiliMusicPlayer(browser=browser, bv_list=BV_LIST, on_timeupdate=show_progress, on_play=func_on_play)
+    biliMusic = BiliMusicPlayer(
+        browser=browser,
+        bv_list=BV_LIST,
+        on_timeupdate=show_progress,
+        on_play=func_on_play,
+        default_volume=30,
+        sep_page=True
+    )
 
     def cmdctl():
         while True:
@@ -213,7 +228,6 @@ async def test():
     cmd_thread = threading.Thread(target=cmdctl)
     cmd_thread.start()
 
-    await biliMusic.run()
     await biliMusic.play()
 
     await browser.close()
