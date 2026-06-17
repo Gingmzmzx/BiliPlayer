@@ -1,7 +1,7 @@
 import asyncio
 import random
-from playwright.async_api import Browser
-from .config import DEBUG_FLG, VOL_DEFAULT
+from playwright.async_api import Browser, Page
+from .config import DEBUG_FLG
 from .utils import prt
 
 
@@ -22,11 +22,12 @@ class BiliMusicPlayer:
     def __init__(self,
                  browser: Browser,
                  bv_list: list[str],
+                 default_volume: int,
+                 sep_page: bool,
                  preferrence=None,
                  on_timeupdate = lambda cur, total: None,
                  on_ended = lambda: None,
-                 on_play = lambda: None,
-                 default_volume: int = VOL_DEFAULT
+                 on_play = lambda: None
                  ) -> None:
         if preferrence is None:
             preferrence = dict()
@@ -39,24 +40,18 @@ class BiliMusicPlayer:
         self.callback_ended = on_ended
         self.callback_play = on_play
         self.state: PlayState = PlayState()
-        self.default_volume: int = default_volume
+        self.default_volume: int = int(default_volume)
         self.preferrence: dict = preferrence
         self.duration: float = 0
         self.cur: float = 0
-
-    async def run(self):
-        # Init page
-        self.page = await self.browser.new_page()
-        prt("page created")
-        await self.page.expose_function("biliMusic_on_timeupdate", self._on_timeupdate)
-        await self.page.expose_function("biliMusic_on_ended", self._on_ended)
+        self.sep_page = sep_page
 
     def get_random_next(self) -> str:
         available = [bv for bv in self.bv_list if bv != self.current_bv]
         return random.choice(available if available else self.bv_list)
 
     def _on_timeupdate(self, cur, total):
-        prt(f"Time update: {cur:.2f} / {total:.2f}")
+        # prt(f"Time update: {cur:.2f} / {total:.2f}")
         self.cur = cur
         endTime = self.preferrence.get(self.current_bv, {}).get("endTime", -1)
         if endTime != -1 and cur >= endTime:
@@ -99,16 +94,23 @@ class BiliMusicPlayer:
         self.state.volume = vol
 
     async def play(self, bvid=None):
+        # Init page
+        if self.sep_page:
+            self.page: Page = await self.browser.new_page()
+            prt("Page Created")
+            await self.page.expose_function("biliMusic_on_timeupdate", self._on_timeupdate)
+            await self.page.expose_function("biliMusic_on_ended", self._on_ended)
+
         bvid = self.get_random_next() if bvid is None else bvid
         pref = self.preferrence.get(bvid, {})
         self.current_bv = bvid
         url = f"https://www.bilibili.com/video/{bvid}"
         if pref.get("p"):
             url += f"?p={pref.get('p')}"
-        prt("going to", url)
+        prt("Going to", url)
         await self.page.goto(url, timeout=80000)
         await self.page.wait_for_selector("video", timeout=40000)
-        prt("video loaded")
+        prt("Video Loaded")
 
         # 标题
         title = await self.page.evaluate('document.querySelector("h1")?.innerText || "未知标题"')
@@ -132,6 +134,9 @@ class BiliMusicPlayer:
         while True:
             if self.state.next_song:
                 self.state.next_song = False
+                if self.sep_page:
+                    await self.page.close()
+                    prt("Close Page")
                 await self.play(self.get_random_next())
                 break
             if self.state.toggle_pause:

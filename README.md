@@ -16,3 +16,7 @@
 目前还没打包，功能还在完善。您可以克隆本仓库后在项目根目录下直接执行`main.py`  
 哦对了，你还需要`playwright`和`PyQt6`，`playwright`需要提前装好`chromium`  
 本项目基于Python3.8编写
+
+## 特别声明
+本项目采用Apache License 2.0，不得商用。  
+本项目只使用了copilot内联建议，未使用Claude Code等全自动Agent工具。

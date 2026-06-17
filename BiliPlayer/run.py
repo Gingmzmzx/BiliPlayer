@@ -10,9 +10,9 @@ from PyQt6.QtGui import QFont
 
 from .player import BiliMusicPlayer
 from .user import User
-from . import config
 from .utils import prt
 from .gui import RightSideProgress
+from .config import Config, DEBUG_FLG
 
 
 # ===================== 全局信号类 =====================
@@ -21,6 +21,7 @@ class AppSignal(QObject):
     loading_close = pyqtSignal()                          # 关闭Loading信号
 
 app_sig = AppSignal()
+config  = Config()
 
 # 跨线程指令队列：存放需要跳转的进度百分比 (0~100)
 seek_val = -1
@@ -36,6 +37,9 @@ loading_window = None
 class LoadingWindow(QWidget):
     def __init__(self, uid, favName):
         super().__init__()
+        self.info_label = None
+        self.load_label = None
+        self.bg_panel = None
         self.uid = uid
         self.favName = favName
         self.init_ui()
@@ -109,14 +113,14 @@ async def play_main(uid, favName):
     global TASK_RUNNING, seek_val
     p = await async_playwright().start()
     browser = await p.chromium.launch(
-        headless=not config.DEBUG_FLG,
+        headless=not DEBUG_FLG,
         ignore_default_args=["--mute-audio"],
         args=["--autoplay-policy=no-user-gesture-required", "--no-sandbox"]
     )
 
     favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
     prt(favList)
-    biliPlayer = BiliMusicPlayer(browser=browser, bv_list=favList, preferrence=config.PREFERRENCE)
+    biliPlayer = BiliMusicPlayer(browser=browser, bv_list=favList, preferrence=config.get("Player.preference"), sep_page=config.get("Player.sepPage"), default_volume=config.get("Player.defaultVolume"))
 
     # 播放进度回调 → 更新UI
     def timeupdate(cur, total):
@@ -125,9 +129,7 @@ async def play_main(uid, favName):
     biliPlayer.callback_timeupdate = timeupdate
 
     # ========== 关键：执行 run() 前Loading已显示，执行完发送关闭信号 ==========
-    prt("开始执行 biliPlayer.run()，Loading 生效中...")
-    await biliPlayer.run()
-    prt("biliPlayer.run() 执行完毕，关闭 Loading")
+    prt("biliPlayer实例化完成，关闭Loading...")
     app_sig.loading_close.emit()  # 通知UI线程关闭Loading
 
     # 1. 播放主协程（长驻）

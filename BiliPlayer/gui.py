@@ -1,4 +1,3 @@
-import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QSlider, QLabel
 from PyQt6.QtCore import Qt, QPoint, QRect
 
