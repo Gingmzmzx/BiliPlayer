@@ -19,4 +19,3 @@
 
 ## 特别声明
 本项目采用Apache License 2.0，不得商用。  
-本项目只使用了copilot内联建议，未使用Claude Code等全自动Agent工具。

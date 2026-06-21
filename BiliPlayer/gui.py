@@ -1,3 +1,5 @@
+import sys
+
 from PyQt6.QtWidgets import QApplication, QWidget, QSlider, QLabel
 from PyQt6.QtCore import Qt, QPoint, QRect
 
@@ -115,11 +117,15 @@ class RightSideProgress(QWidget):
         self.callback_on_handle_leave = on_handle_leave
         self.callback_on_progress_change = on_progress_change
 
-        self.setWindowFlags(
+        # macOS: AA_PluginApplication 已隐藏 Dock，不加 Tool（Tool 创建 NSPanel 会引入拖拽问题）
+        # Windows: 加 Tool 以隐藏任务栏图标
+        flags = (
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
         )
+        if sys.platform != "darwin":
+            flags |= Qt.WindowType.Tool
+        self.setWindowFlags(flags)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 

@@ -2,11 +2,11 @@ import asyncio
 import random
 from playwright.async_api import Browser
 
-from .config import DEBUG_FLG
+from .config import DEBUG_FLG, STEALTH_JS
 from .utils import prt
 
 
-with open("BiliPlayer/anti_pause.js", "r", encoding="utf-8") as f:
+with open("BiliPlayer/resources/anti_pause.js", "r", encoding="utf-8") as f:
     JS_CONTENT = f.read()
 
 
@@ -22,17 +22,17 @@ class PlayState:
 class BiliMusicPlayer:
     def __init__(self,
                  browser: Browser,
-                 bv_list: list[str],
+                 bv_list: list,
                  default_volume: int,
                  sep_page: bool,
-                 preferrence=None,
+                 preference=None,
                  on_timeupdate = lambda cur, total: None,
                  on_ended = lambda: None,
                  on_play = lambda: None
                  ) -> None:
-        if preferrence is None:
-            preferrence = dict()
-        self.bv_list: list[str] = bv_list
+        if preference is None:
+            preference = dict()
+        self.bv_list: list = bv_list
         self.current_title: str = str()
         self.current_bv: str = str()
         self.browser: Browser = browser
@@ -42,11 +42,12 @@ class BiliMusicPlayer:
         self.callback_play = on_play
         self.state: PlayState = PlayState()
         self.default_volume: int = int(default_volume)
-        self.preferrence: dict = preferrence
+        self.preference: dict = preference
         self.duration: float = 0
         self.cur: float = 0
         self.sep_page = sep_page
         self.random_cur = 0
+        self.context = None
 
     def get_random_next(self) -> str:
         if self.random_cur < len(self.bv_list):
@@ -61,7 +62,7 @@ class BiliMusicPlayer:
     def _on_timeupdate(self, cur, total):
         # prt(f"Time update: {cur:.2f} / {total:.2f}")
         self.cur = cur
-        endTime = self.preferrence.get(self.current_bv, {}).get("endTime", -1)
+        endTime = self.preference.get(self.current_bv, {}).get("endTime", -1)
         if endTime != -1 and cur >= endTime:
             self.next_song()
         self.callback_timeupdate(cur, total)
@@ -104,13 +105,25 @@ class BiliMusicPlayer:
     async def play(self, bvid=None):
         # Init page
         if self.sep_page:
-            self.page = await self.browser.new_page()
+            if not self.context:
+                self.context = await self.browser.new_context(
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    ),
+                    viewport={"width": 1920, "height": 1080},
+                    locale="zh-CN",
+                )
+            self.page = await self.context.new_page()
+            # 注入 stealth 脚本（在每个新 document 创建前执行）
+            await self.page.add_init_script(STEALTH_JS)
             prt("Page Created")
             await self.page.expose_function("biliMusic_on_timeupdate", self._on_timeupdate)
             await self.page.expose_function("biliMusic_on_ended", self._on_ended)
 
         bvid = self.get_random_next() if bvid is None else bvid
-        pref = self.preferrence.get(bvid, {})
+        pref = self.preference.get(bvid, {})
         self.current_bv = bvid
         url = f"https://www.bilibili.com/video/{bvid}"
         if pref.get("p"):
@@ -181,6 +194,7 @@ async def test():
     from playwright.async_api import async_playwright
     p = await async_playwright().start()
     browser = await p.chromium.launch(
+        channel="chrome",
         headless=not DEBUG_FLG,
         ignore_default_args=["--mute-audio"],
         args=["--autoplay-policy=no-user-gesture-required", "--no-sandbox"]

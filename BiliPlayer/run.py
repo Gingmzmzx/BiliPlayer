@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import threading
 
 from playwright.async_api import async_playwright
@@ -51,11 +52,15 @@ class LoadingWindow(QWidget):
 
     def init_ui(self):
         # 窗口基础设置：置顶、无边框、居中、磨砂深色风格
-        self.setWindowFlags(
+        # macOS: AA_PluginApplication 已隐藏 Dock，不加 Tool（Tool 创建 NSPanel 会引入拖拽问题）
+        # Windows: 加 Tool 以隐藏任务栏图标
+        flags = (
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
         )
+        if sys.platform != "darwin":
+            flags |= Qt.WindowType.Tool
+        self.setWindowFlags(flags)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(280, 120)
 
@@ -113,14 +118,30 @@ async def play_main(uid, favName):
     global TASK_RUNNING, seek_val
     p = await async_playwright().start()
     browser = await p.chromium.launch(
+        channel="chrome",
         headless=not DEBUG_FLG,
         ignore_default_args=["--mute-audio"],
-        args=["--autoplay-policy=no-user-gesture-required", "--no-sandbox"]
+        args=[
+            "--autoplay-policy=no-user-gesture-required",
+            "--no-sandbox",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-infobars",
+            "--disable-dev-shm-usage",
+            "--disable-features=TranslateUI",
+            "--disable-component-extensions-with-background-pages",
+            "--disable-client-side-phishing-detection",
+            "--disable-default-apps",
+            "--disable-extensions",
+            "--disable-sync",
+            "--metrics-recording-only",
+            "--no-default-browser-check",
+            "--no-first-run",
+        ]
     )
 
     favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
     prt(favList)
-    biliPlayer = BiliMusicPlayer(browser=browser, bv_list=favList, preferrence=config.get("Player.preference"), sep_page=config.get("Player.sepPage"), default_volume=config.get("Player.defaultVolume"))
+    biliPlayer = BiliMusicPlayer(browser=browser, bv_list=favList, preference=config.get("Player.preference"), sep_page=config.get("Player.sepPage"), default_volume=config.get("Player.defaultVolume"))
 
     # 播放进度回调 → 更新UI
     def timeupdate(cur, total):

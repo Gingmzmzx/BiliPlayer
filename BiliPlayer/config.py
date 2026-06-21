@@ -1,4 +1,6 @@
 DEBUG_FLG = True
+with open("BiliPlayer/resources/stealth.js", "r", encoding="utf-8") as f:
+    STEALTH_JS = f.read()
 
 import os, json, pathlib
 from .exceptions import ConfigException

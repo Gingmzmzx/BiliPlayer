@@ -138,6 +138,9 @@ class TwoInputDialog(QDialog):
 
 
 if __name__ == "__main__":
+    # macOS：隐藏 Dock 图标（必须在 QApplication 创建之前设置）
+    if sys.platform == "darwin":
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_PluginApplication, True)
     app = QApplication(sys.argv)
     dlg = TwoInputDialog(
         title="BiliPlayer初始化",
