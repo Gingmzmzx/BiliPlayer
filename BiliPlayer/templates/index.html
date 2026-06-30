@@ -3,534 +3,286 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BiliPlayer Control</title>
+<title>BiliPlayer</title>
 <style>
 :root {
-  --bg: #0f0f14;
-  --panel: #1a1a24;
-  --panel2: #22222e;
-  --border: #2a2a3a;
-  --text: #e0e0e8;
-  --text2: #9090a0;
-  --accent: #ff6b9d;
-  --accent2: #ff99cc;
-  --green: #4ade80;
-  --red: #f87171;
-  --radius: 8px;
-  --radius-sm: 5px;
+  --accent: #ff6b9d; --accent2: #ff99cc;
+  --text: #fff; --text2: rgba(255,255,255,0.5);
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 16px;
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Microsoft YaHei",sans-serif;
+  color:var(--text);min-height:100vh;overflow:hidden;background:#0a0a0f;
 }
-.container { max-width: 640px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.bg{position:fixed;top:-20%;left:-20%;width:140%;height:140%;background-size:cover;background-position:center;filter:blur(80px) brightness(0.3) saturate(1.5);z-index:0;transition:background-image 0.8s ease}
+.bg-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.15);z-index:1}
 
-.header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; background: var(--panel); border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-.header h1 { font-size: 20px; font-weight: 700; color: var(--accent2); }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
-.status-dot.disconnected { background: var(--red); }
+.app{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;height:100vh;padding:24px 48px;gap:100px}
+.col-player{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;flex-shrink:0}
+.col-sidebar{display:flex;flex-direction:column;gap:16px;width:420px;flex-shrink:0;overflow:visible}
 
-.card {
-  background: var(--panel); border-radius: var(--radius);
-  border: 1px solid var(--border); padding: 16px 20px;
-}
-.card-title {
-  font-size: 13px; font-weight: 600; text-transform: uppercase;
-  color: var(--text2); margin-bottom: 12px; letter-spacing: 0.5px;
-}
+.cover-wrap{width:min(46vh,380px);aspect-ratio:1;border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.5);background:rgba(255,255,255,0.04);position:relative}
+.cover-wrap img{width:100%;height:100%;object-fit:cover}
+.cover-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0.2}
 
-input, button, select {
-  font-family: inherit; font-size: 14px; outline: none;
-}
-input {
-  background: var(--panel2); border: 1px solid var(--border);
-  color: var(--text); padding: 8px 12px; border-radius: var(--radius-sm);
-  width: 100%;
-}
-input:focus { border-color: var(--accent2); }
-.btn {
-  padding: 8px 16px; border-radius: var(--radius-sm); border: none;
-  cursor: pointer; font-weight: 600; transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--accent2); }
-.btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover { background: #2e2e3e; }
-.btn-danger { background: var(--red); color: #fff; }
-.btn-danger:hover { opacity: 0.85; }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
-.btn-xs { padding: 2px 8px; font-size: 11px; }
+.player-title{font-size:20px;font-weight:700;text-align:center;max-width:380px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+.player-bv{font-size:13px;color:var(--text2);text-align:center}
 
-.row { display: flex; gap: 8px; align-items: center; }
-.col { display: flex; flex-direction: column; gap: 8px; }
+.prog-wrap{width:100%;max-width:380px}
+.prog-bar-bg{width:100%;height:4px;background:rgba(255,255,255,0.12);border-radius:2px;cursor:pointer;overflow:hidden}
+.prog-bar-fill{height:100%;background:#fff;border-radius:2px;width:0%;transition:width 0.3s linear}
+.prog-row{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums}
 
-.user-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.user-form input { flex: 1; min-width: 120px; }
+.ctrls{display:flex;align-items:center;gap:20px}
+.ctrl-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.15s;background:rgba(255,255,255,0.1);color:#fff}
+.ctrl-btn:hover{background:rgba(255,255,255,0.2)}
+.ctrl-btn.play{width:56px;height:56px;font-size:24px;background:rgba(255,255,255,0.15)}
+.ctrl-btn.play:hover{background:rgba(255,255,255,0.25)}
 
-.now-playing-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-.now-playing-bv { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.vol-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.vol-row input[type=range]{width:80px;accent-color:#fff;height:3px}
 
-.progress-bar-wrap { position: relative; margin: 8px 0 6px; }
-.progress-bar-bg {
-  width: 100%; height: 8px; background: var(--panel2);
-  border-radius: 4px; cursor: pointer; overflow: hidden;
-}
-.progress-bar-fill {
-  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: 4px; transition: width 0.3s linear;
-}
-.time-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+/* ---- Sidebar cards ---- */
+.sidebar-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.06)}
+.sidebar-title{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);letter-spacing:0.6px;margin-bottom:10px}
 
-.controls-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.volume-wrap { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 120px; }
-.volume-wrap input[type="range"] { flex: 1; accent-color: var(--accent2); }
-.volume-wrap span { font-size: 12px; color: var(--text2); min-width: 36px; }
+.user-row{display:flex;gap:6px}
+.user-row input{flex:1;font-size:12px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text);outline:none;font-family:inherit}
+.user-row input:focus{border-color:var(--accent2)}
+.user-hint{font-size:11px;color:var(--text2);margin-top:4px}
 
-.mode-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
-.mode-btn {
-  padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-  background: var(--panel2); color: var(--text2); cursor: pointer;
-  font-size: 13px; transition: all 0.15s;
-}
-.mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.mode-btn:hover:not(.active) { border-color: var(--accent2); color: var(--text); }
+/* ---- Pills ---- */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--text2);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s;white-space:nowrap;text-decoration:none}
+.pill:hover{background:rgba(255,255,255,0.1);color:var(--text)}
+.pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pill.danger{color:#f87171}.pill.danger:hover{background:rgba(248,113,113,0.15);border-color:#f87171}
+.pill input{width:auto;background:transparent;border:none;color:inherit;font-size:12px;font-family:inherit;outline:none}
+.pill input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-.playlist { max-height: 360px; overflow-y: auto; }
-.playlist::-webkit-scrollbar { width: 5px; }
-.playlist::-webkit-scrollbar-track { background: transparent; }
-.playlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* ---- Playlist (only this scrolls) ---- */
+.pl-scroll{overflow-y:auto;max-height:calc(100vh - 500px);min-height:100px}
+.pl-scroll::-webkit-scrollbar{width:4px}
+.pl-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px}
+.pl-list{display:flex;flex-direction:column;gap:1px}
+.pl-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background 0.1s;font-family:inherit;font-size:13px;color:var(--text);background:none;border:none;text-align:left;width:100%}
+.pl-item:hover{background:rgba(255,255,255,0.06)}
+.pl-item.current{background:rgba(255,255,255,0.1)}
+.pl-idx{font-size:11px;color:var(--text2);min-width:22px;text-align:right;flex-shrink:0}
+.pl-item.current .pl-idx{color:var(--accent2);font-weight:700}
+.pl-info{flex:1;min-width:0}
+.pl-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.pl-item.current .pl-title{color:var(--accent2)}
+.pl-bv{font-size:11px;color:var(--text2);margin-top:1px}
+.pl-acts{display:flex;gap:2px;opacity:0;transition:opacity 0.1s;flex-shrink:0}
+.pl-item:hover .pl-acts{opacity:1}
 
-.playlist-item {
-  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-  border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s;
-  border: 1px solid transparent;
-}
-.playlist-item:hover { background: var(--panel2); }
-.playlist-item.current {
-  background: rgba(255, 107, 157, 0.12);
-  border-color: var(--accent);
-}
-.playlist-item .idx { font-size: 12px; color: var(--text2); min-width: 28px; }
-.playlist-item .bv { font-size: 13px; flex: 1; word-break: break-all; }
-.playlist-item .actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.1s; }
-.playlist-item:hover .actions { opacity: 1; }
+.add-row{display:flex;gap:6px;margin-top:10px}
+.add-row input{flex:1;font-size:12px;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text);outline:none;font-family:inherit}
+.add-row input:focus{border-color:var(--accent2)}
 
-.add-bv-row { display: flex; gap: 6px; margin-top: 10px; }
+/* ---- Modal / Dialog ---- */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:100;justify-content:center;align-items:center;backdrop-filter:blur(10px)}
+.modal-overlay.open{display:flex}
+.modal{background:#1c1c24;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:18px;margin-bottom:16px}
+.modal .row{margin-bottom:10px}
+.modal label{color:var(--text2);font-size:13px;display:flex;align-items:center;gap:6px}
 
-.config-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-.config-row label { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.pref-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
+.pref-row input{width:55px;font-size:12px;padding:5px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text);outline:none;font-family:inherit}
+.pref-row select{min-width:120px;font-size:12px;padding:5px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text);outline:none;font-family:inherit}
+.pref-form select{flex:1;min-width:120px;font-size:12px;padding:7px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text);outline:none;font-family:inherit}
+.pref-form input{width:70px;font-size:12px;padding:7px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text);outline:none;font-family:inherit}
 
-.toggle {
-  position: relative; display: inline-block; width: 42px; height: 24px;
-}
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle .slider {
-  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--panel2); border-radius: 24px; transition: 0.2s;
-  border: 1px solid var(--border);
-}
-.toggle .slider::before {
-  content: ""; position: absolute; height: 18px; width: 18px;
-  left: 2px; bottom: 2px; background: var(--text2); border-radius: 50%; transition: 0.2s;
-}
-.toggle input:checked + .slider { background: var(--accent); border-color: var(--accent); }
-.toggle input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+.dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;flex-shrink:0}
+.dot.active{border-color:#fff}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="bg" id="bg"></div><div class="bg-overlay"></div>
 
-  <div class="header">
-    <h1>🎵 BiliPlayer</h1>
-    <span id="status-dot" class="status-dot disconnected" title="连接状态"></span>
-  </div>
-
-  <div class="card">
-    <div class="card-title">👤 用户与收藏夹</div>
-    <div class="user-form">
-      <input id="uid-input" type="number" placeholder="用户 UID" value="">
-      <input id="favname-input" type="text" placeholder="收藏夹名称" value="">
-      <button class="btn btn-primary" onclick="loadUser()">加载</button>
+<div class="app">
+  <!-- ====== Player ====== -->
+  <div class="col-player">
+    <div class="cover-wrap">
+      <div class="cover-placeholder" id="cover-ph">🎵</div>
+      <img id="np-cover" src="" referrerpolicy="no-referrer" style="display:none" onload="this.style.display='';$('#cover-ph').style.display='none'" onerror="this.style.display='none';$('#cover-ph').style.display='flex'">
     </div>
-    <div id="current-user" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
+    <div class="player-title" id="np-title">未在播放</div>
+    <div class="player-bv" id="np-bv">---</div>
+    <div class="prog-wrap" id="progress-wrap" onclick="seekClick(event)">
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="progress-fill"></div></div>
+      <div class="prog-row"><span id="time-cur">00:00</span><span id="time-total">00:00</span></div>
+    </div>
+    <div class="ctrls">
+      <button class="ctrl-btn play" onclick="api('/api/playback/pause',{})">▶</button>
+      <button class="ctrl-btn" onclick="api('/api/playback/next',{})">⏭</button>
+    </div>
+    <div class="vol-row">
+      🔈<input type="range" min="0" max="100" value="30" id="vol-slider" oninput="onVolumeChange(this.value)"><span id="vol-label">30</span>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">🎧 正在播放</div>
-    <div class="now-playing-title" id="np-title">---</div>
-    <div class="now-playing-bv" id="np-bv">等待播放...</div>
-    <div class="progress-bar-wrap" id="progress-wrap" onclick="seekClick(event)">
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  <!-- ====== Sidebar ====== -->
+  <div class="col-sidebar">
+    <!-- User -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">👤 用户与收藏夹</div>
+      <div class="user-row">
+        <input id="uid-input" type="number" placeholder="UID">
+        <input id="favname-input" type="text" placeholder="收藏夹名称">
+        <button class="pill active" onclick="loadUser()">加载</button>
+      </div>
+      <div class="user-hint" id="current-user"></div>
+    </div>
+
+    <!-- Playlist - only this section scrolls -->
+    <div class="sidebar-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="sidebar-title">📋 播放列表 <span id="pl-count" style="font-weight:400"></span></div>
+      <div class="pl-scroll" id="playlist-scroll">
+        <div class="pl-list" id="playlist-container">
+          <div style="color:var(--text2);font-size:13px;padding:8px 12px">暂无数据…</div>
+        </div>
+      </div>
+      <div class="add-row">
+        <input id="add-bv-input" type="text" placeholder="BV 号…">
+        <button class="pill" onclick="addBv()">添加</button>
+        <button class="pill" onclick="refreshPlaylist()">刷新</button>
       </div>
     </div>
-    <div class="time-row">
-      <span id="time-cur">00:00</span>
-      <span id="time-total">00:00</span>
-    </div>
-    <div class="controls-row">
-      <button class="btn btn-primary" onclick="apiCall('/api/playback/pause', {})" title="暂停/播放">⏯️</button>
-      <button class="btn btn-secondary" onclick="apiCall('/api/playback/next', {})" title="下一首">⏭️</button>
-      <div class="volume-wrap">
-        <span>🔊</span>
-        <input type="range" min="0" max="100" value="30" id="vol-slider" oninput="onVolumeChange(this.value)">
-        <span id="vol-label">30</span>
+
+    <!-- Mode -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">🔄 播放模式</div>
+      <div class="row">
+        <button class="pill mode-btn" data-mode="sequential" onclick="setPlayMode('sequential')">按顺序</button>
+        <button class="pill mode-btn" data-mode="shuffle" onclick="setPlayMode('shuffle')">随机播放</button>
+        <button class="pill mode-btn" data-mode="repeat_one" onclick="setPlayMode('repeat_one')">单曲循环</button>
       </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="card-title">🔄 播放模式</div>
-    <div class="mode-buttons" id="mode-buttons">
-      <button class="mode-btn" data-mode="sequential" onclick="setPlayMode('sequential')">按顺序</button>
-      <button class="mode-btn" data-mode="shuffle" onclick="setPlayMode('shuffle')">随机播放</button>
-      <button class="mode-btn" data-mode="repeat_one" onclick="setPlayMode('repeat_one')">单曲循环</button>
+    <!-- Settings button -->
+    <button class="pill" style="align-self:flex-start" onclick="openSettingsModal()">⚙️ 更多设置</button>
+  </div>
+</div>
+
+<!-- ====== Settings Modal ====== -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h2 style="margin:0">⚙️ 更多设置</h2>
+      <button class="pill" onclick="closeModal('settings-modal')">✕ 关闭</button>
+    </div>
+
+    <div class="row" style="margin-bottom:14px">
+      <label class="pill">sepPage <input type="checkbox" id="sep-page-toggle" onchange="onSepPageChange(this.checked)"></label>
+      <label class="pill">默认音量 <input type="number" id="default-vol-input" min="0" max="100" value="30" style="width:48px;text-align:center" oninput="debounceVol(this.value)"></label>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">主题色</div>
+      <div class="row">
+        <span class="dot" style="background:#ff6b9d" data-theme="pink" onclick="setTheme('pink')"></span>
+        <span class="dot" style="background:#60a5fa" data-theme="blue" onclick="setTheme('blue')"></span>
+        <span class="dot" style="background:#a78bfa" data-theme="purple" onclick="setTheme('purple')"></span>
+        <span class="dot" style="background:#4ade80" data-theme="green" onclick="setTheme('green')"></span>
+        <span class="dot" style="background:#fbbf24" data-theme="amber" onclick="setTheme('amber')"></span>
+      </div>
+    </div>
+
+    <button class="pill" onclick="openPrefModal()" style="margin-bottom:16px">⭐ 播放偏好设置</button>
+  </div>
+</div>
+
+<!-- ====== Preference Modal ====== -->
+<div class="modal-overlay" id="pref-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0">⭐ 播放偏好</h2>
+      <button class="pill" onclick="closeModal('pref-modal')">✕ 关闭</button>
+    </div>
+    <div id="pref-list" style="margin-bottom:14px"></div>
+    <div class="row pref-form">
+      <select id="pref-bv-select"><option value="">选择 BV…</option></select>
+      <input id="pref-p-input" type="number" min="1" placeholder="p (集数)">
+      <input id="pref-begin-input" type="number" min="0" placeholder="开始(s)">
+      <input id="pref-end-input" type="number" min="0" placeholder="结束(s)">
+      <button class="pill active" onclick="addPreference()">添加/更新</button>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-title">⚙️ 设置</div>
-    <div class="config-row">
-      <label>
-        <span>独立页面 (sepPage)</span>
-        <label class="toggle">
-          <input type="checkbox" id="sep-page-toggle" onchange="onSepPageChange(this.checked)">
-          <span class="slider"></span>
-        </label>
-      </label>
-      <label style="gap:4px;">
-        <span>默认音量</span>
-        <input type="number" id="default-vol-input" min="0" max="100" value="30"
-               style="width:64px;" onchange="onDefaultVolChange(this.value)">
-      </label>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">⭐ 播放偏好 (Preference)</div>
-    <div id="pref-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-    <div style="display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap;">
-      <select id="pref-bv-select" style="flex:1;min-width:120px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;">
-        <option value="">选择 BV…</option>
-      </select>
-      <input id="pref-p-input" type="number" min="1" placeholder="p (集数)" style="width:70px;font-size:12px;">
-      <input id="pref-begin-input" type="number" min="0" placeholder="开始(s)" style="width:70px;font-size:12px;">
-      <input id="pref-end-input" type="number" min="0" placeholder="结束(s)" style="width:70px;font-size:12px;">
-      <button class="btn btn-primary btn-sm" onclick="addPreference()">添加/更新</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📋 播放列表</div>
-    <div class="playlist" id="playlist-container">
-      <div style="color:var(--text2);font-size:13px;padding:8px;">暂无数据…</div>
-    </div>
-    <div class="add-bv-row">
-      <input id="add-bv-input" type="text" placeholder="输入 BV 号添加…" style="flex:1;">
-      <button class="btn btn-primary btn-sm" onclick="addBv()">添加</button>
-      <button class="btn btn-secondary btn-sm" onclick="refreshPlaylist()">从B站刷新</button>
-    </div>
-  </div>
-
 </div>
 
 <script>
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
+var $=function(s){return document.querySelector(s)},$$=function(s){return document.querySelectorAll(s)};
+var T={pink:['#ff6b9d','#ff99cc'],blue:['#60a5fa','#93c5fd'],purple:['#a78bfa','#c4b5fd'],green:['#4ade80','#86efac'],amber:['#fbbf24','#fcd34d']};
+function setTheme(n){var a=T[n]||T.pink;document.documentElement.style.setProperty('--accent',a[0]);document.documentElement.style.setProperty('--accent2',a[1]);$$('.dot').forEach(function(d){d.classList.toggle('active',d.dataset.theme===n)});localStorage.setItem('bptheme',n)}
+setTheme(localStorage.getItem('bptheme')||'pink');
+function fmtTime(t){if(!t||t<0)return'00:00';var m=Math.floor(t/60),s=Math.floor(t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+async function api(u,b){try{var o={method:b?'POST':'GET',headers:{}};if(b){o.headers['Content-Type']='application/json';o.body=JSON.stringify(b)}var r=await fetch(u,o);return await r.json()}catch(e){return null}}
 
-function fmtTime(t) {
-  if (!t || t < 0) return '00:00';
-  const m = Math.floor(t / 60), s = Math.floor(t % 60);
-  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
+function openSettingsModal(){$('#settings-modal').classList.add('open')}
+function openPrefModal(){$('#pref-modal').classList.add('open');pollPrefs()}
+function closeModal(id){$('#'+id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(function(m){m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
 
-async function apiCall(url, body = null) {
-  try {
-    const opts = { method: body ? 'POST' : 'GET', headers: {} };
-    if (body) {
-      opts.headers['Content-Type'] = 'application/json';
-      opts.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, opts);
-    return await resp.json();
-  } catch (e) {
-    console.error('API error:', e);
-    return null;
+var lastIdx=-1,dirty=false,volDirty=false;
+async function poll(){
+  var d=await api('/api/status');if(!d)return;
+  $('#np-title').textContent=d.current_title||'未在播放';
+  $('#np-bv').textContent=d.current_bv||'---';
+
+  var cc=(d.playlist_covers||{})[d.current_bv]||'';
+  var img=$('#np-cover'),ph=$('#cover-ph');
+  if(cc&&cc!==img._lastCover){
+    img._lastCover=cc;
+    img.style.display='none';ph.style.display='flex'; // show placeholder while loading
+    img.src=cc;
+    document.getElementById('bg').style.backgroundImage='url('+cc+')';
   }
+  if(!cc){img._lastCover='';img.style.display='none';ph.style.display='flex';document.getElementById('bg').style.backgroundImage=''}
+
+  var pct=d.duration>0?(d.current_time/d.duration)*100:0;
+  $('#progress-fill').style.width=pct+'%';$('#time-cur').textContent=fmtTime(d.current_time);$('#time-total').textContent=fmtTime(d.duration);
+  if(Math.abs(parseInt($('#vol-slider').value)-d.volume)>1){$('#vol-slider').value=d.volume;$('#vol-label').textContent=d.volume}
+  $$('.mode-btn').forEach(function(b){b.classList.toggle('active',b.dataset.mode===d.play_mode)});
+  if(d.uid){$('#current-user').textContent='当前: UID '+d.uid+' · '+d.fav_name;if(!dirty){$('#uid-input').value=d.uid;$('#favname-input').value=d.fav_name}}
+  $('#sep-page-toggle').checked=d.sep_page;if(!volDirty)$('#default-vol-input').value=d.default_volume;
+  if(d.current_index!==lastIdx){lastIdx=d.current_index;renderPL(d.playlist||[],d.playlist_titles||{},d.current_index);$('#pl-count').textContent=(d.playlist||[]).length+' 首';var s=$('#pref-bv-select'),cv=s.value;s.innerHTML='<option value="">选择 BV…</option>'+(d.playlist||[]).map(function(bv){return'<option value="'+bv+'">'+bv+'</option>'}).join('');s.value=cv}
 }
 
-let pollTimer = null;
-let lastIndex = -1;
-let userInputsDirty = false;
-
-async function poll() {
-  const data = await apiCall('/api/status');
-  if (!data) {
-    $('#status-dot').classList.add('disconnected');
-    return;
-  }
-  $('#status-dot').classList.remove('disconnected');
-
-  $('#np-title').textContent = data.current_title || '---';
-  $('#np-bv').textContent = data.current_bv || '等待播放...';
-  const pct = data.duration > 0 ? (data.current_time / data.duration) * 100 : 0;
-  $('#progress-fill').style.width = pct + '%';
-  $('#time-cur').textContent = fmtTime(data.current_time);
-  $('#time-total').textContent = fmtTime(data.duration);
-
-  if (Math.abs(parseInt($('#vol-slider').value) - data.volume) > 1) {
-    $('#vol-slider').value = data.volume;
-    $('#vol-label').textContent = data.volume;
-  }
-
-  $$('.mode-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.mode === data.play_mode);
-  });
-
-  if (data.uid) {
-    $('#current-user').textContent = '当前: UID ' + data.uid + ' · ' + data.fav_name;
-    if (!userInputsDirty) {
-      $('#uid-input').value = data.uid;
-      $('#favname-input').value = data.fav_name;
-    }
-  }
-
-  $('#sep-page-toggle').checked = data.sep_page;
-  $('#default-vol-input').value = data.default_volume;
-
-  if (data.current_index !== lastIndex) {
-    lastIndex = data.current_index;
-    renderPlaylist(data.playlist || [], data.playlist_titles || {}, data.current_index);
-    // Update BV selector for preference form
-    const sel = $('#pref-bv-select');
-    const curVal = sel.value;
-    sel.innerHTML = '<option value="">选择 BV…</option>' +
-      (data.playlist || []).map(bv => `<option value="${bv}">${bv}</option>`).join('');
-    sel.value = curVal;
-  }
+function renderPL(pl,titles,ci){
+  var c=$('#playlist-container');if(!pl.length){c.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 12px">暂无数据…</div>';return}
+  c.innerHTML=pl.map(function(bv,i){var t=titles[bv]||bv;return'<div class="pl-item'+(i===ci?' current':'')+'" onclick="playIndex('+i+')"><span class="pl-idx">'+(i===ci?'▶':'#'+(i+1))+'</span><div class="pl-info"><div class="pl-title" title="'+esc(t)+'">'+esc(t)+'</div><div class="pl-bv">'+bv+'</div></div><div class="pl-acts"><button class="pill" style="padding:2px 6px;font-size:10px" onclick="event.stopPropagation();moveUp('+i+')"'+(i===0?' disabled':'')+'>▲</button><button class="pill" style="padding:2px 6px;font-size:10px" onclick="event.stopPropagation();moveDown('+i+')"'+(i===pl.length-1?' disabled':'')+'>▼</button><button class="pill danger" style="padding:2px 6px;font-size:10px" onclick="event.stopPropagation();removeBv('+i+')">✕</button></div></div>'}).join('')
 }
 
-// Fetch preferences separately (less frequent)
-async function pollPrefs() {
-  const data = await apiCall('/api/preferences');
-  if (data) { prefsData = data; renderPrefs(); }
-}
+var PD={};
+async function pollPrefs(){var d=await api('/api/preferences');if(d){PD=d;renderPrefs()}}
+function renderPrefs(){var c=$('#pref-list'),e=Object.entries(PD);if(!e.length){c.innerHTML='<div style="color:var(--text2);font-size:13px;padding:4px">暂无偏好设置</div>';return}c.innerHTML=e.map(function(a){var bv=a[0],pf=a[1];return'<div class="pref-row"><span style="color:var(--accent2);min-width:110px;font-weight:600">'+bv+'</span> p:<input type="number" min="1" value="'+(pf.p||'')+'" placeholder="-" onchange="updP(\''+bv+'\',\'p\',this.value)"> 开始:<input type="number" min="0" value="'+(pf.beginTime||'')+'" placeholder="-" onchange="updP(\''+bv+'\',\'beginTime\',this.value)"> 结束:<input type="number" min="0" value="'+(pf.endTime||'')+'" placeholder="-" onchange="updP(\''+bv+'\',\'endTime\',this.value)"> <button class="pill danger" style="font-size:10px;padding:3px 7px" onclick="delP(\''+bv+'\')">✕</button></div>'}).join('')}
+function updP(bv,k,v){var cur=PD[bv]||{},b={bvid:bv,p:cur.p,beginTime:cur.beginTime,endTime:cur.endTime};if(v!=='')b[k]=parseInt(v);else delete b[k];api('/api/preference/set',b).then(function(r){if(r&&r.ok){PD[bv]=r.preference;renderPrefs()}})}
+function addP(){var bv=$('#pref-bv-select').value;if(!bv)return;var b={bvid:bv};['p','begin','end'].forEach(function(k){var v=document.getElementById('pref-'+k+'-input').value;if(v)b[({begin:'beginTime',end:'endTime'})[k]||k]=parseInt(v)});api('/api/preference/set',b).then(function(r){if(r&&r.ok){PD[bv]=r.preference;renderPrefs();['p','begin','end'].forEach(function(k){var el=document.getElementById('pref-'+k+'-input');if(el)el.value=''})}})}
+function delP(bv){if(!confirm('删除 '+bv+' 的偏好？'))return;api('/api/preference/delete',{bvid:bv}).then(function(r){if(r&&r.ok){delete PD[bv];renderPrefs()}})}
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+function loadUser(){var uid=$('#uid-input').value.trim(),n=$('#favname-input').value.trim();if(!uid||!n)return;var b=document.querySelector('button[onclick="loadUser()"]');b.textContent='…';b.disabled=true;api('/api/user/load',{uid:parseInt(uid),fav_name:n}).then(function(r){b.disabled=false;b.textContent=r&&r.ok?'✓':'✗';if(r&&r.ok){dirty=false;lastIdx=-1}setTimeout(function(){b.textContent='加载'},2000)})}
+function setPlayMode(m){api('/api/config',{play_mode:m});$$('.mode-btn').forEach(function(b){b.classList.toggle('active',b.dataset.mode===m)})}
+function onVolumeChange(v){$('#vol-label').textContent=v;api('/api/playback/volume',{volume:parseInt(v)})}
+function seekClick(e){var r=$('#progress-wrap').getBoundingClientRect();api('/api/playback/seek',{position:Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100))})}
+function playIndex(i){api('/api/playback/play_index',{index:i})}
+function addBv(){var b=$('#add-bv-input').value.trim();if(!b)return;api('/api/playlist/add',{bvid:b}).then(function(){$('#add-bv-input').value='';lastIdx=-1})}
+function removeBv(i){if(!confirm('确定移除？'))return;api('/api/playlist/remove',{index:i}).then(function(){lastIdx=-1})}
+function moveUp(i){if(i<=0)return;api('/api/playlist/move',{from_index:i,to_index:i-1}).then(function(){lastIdx=-1})}
+function moveDown(i){api('/api/playlist/move',{from_index:i,to_index:i+1}).then(function(){lastIdx=-1})}
+function refreshPlaylist(){api('/api/playlist/refresh',{}).then(function(r){if(r&&r.ok)lastIdx=-1;else alert('刷新失败')})}
+function onSepPageChange(v){api('/api/config',{sep_page:v})}
+var volDebounce=null;function debounceVol(v){clearTimeout(volDebounce);volDebounce=setTimeout(function(){onDefaultVolChange(v)},400)}
+function onDefaultVolChange(v){volDirty=false;api('/api/config',{default_volume:Math.max(0,Math.min(100,parseInt(v)||30))})}
+function addPreference(){addP()}
 
-function renderPlaylist(playlist, titles, curIdx) {
-  const container = $('#playlist-container');
-  if (!playlist.length) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:8px;">暂无数据…</div>';
-    return;
-  }
-  container.innerHTML = playlist.map((bv, i) => {
-    const t = titles[bv] || bv;
-    return `
-    <div class="playlist-item${i === curIdx ? ' current' : ''}" onclick="playIndex(${i})">
-      <span class="idx">${i === curIdx ? '▶' : '#' + (i + 1)}</span>
-      <span class="bv" title="${escapeHtml(t)}&#10;${bv}">
-        <span style="color:#e0e0e8;font-size:13px;">${escapeHtml(t)}</span>
-        <span style="color:var(--text2);font-size:11px;display:block;">${bv}</span>
-      </span>
-      <span class="actions">
-        <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();moveUp(${i})" ${i===0?'disabled':''}>▲</button>
-        <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();moveDown(${i})" ${i===playlist.length-1?'disabled':''}>▼</button>
-        <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeBv(${i})">✕</button>
-      </span>
-    </div>
-  `}).join('');
-}
-
-function startPolling() {
-  poll();
-  pollTimer = setInterval(poll, 800);
-  pollPrefs();
-  setInterval(pollPrefs, 5000);
-}
-
-async function loadUser() {
-  const uid = $('#uid-input').value.trim();
-  const favName = $('#favname-input').value.trim();
-  if (!uid || !favName) return alert('请填写 UID 和收藏夹名称');
-
-  const btn = document.querySelector('button[onclick="loadUser()"]');
-  btn.textContent = '加载中…';
-  btn.disabled = true;
-
-  const r = await apiCall('/api/user/load', { uid: parseInt(uid), fav_name: favName });
-
-  btn.disabled = false;
-  if (r && r.ok) {
-    btn.textContent = '✓ 已触发刷新';
-    userInputsDirty = false;
-    lastIndex = -1;
-    setTimeout(() => { btn.textContent = '加载'; }, 2000);
-  } else {
-    btn.textContent = '✗ 失败';
-    alert('加载失败: ' + (r?.error || '未知错误'));
-    setTimeout(() => { btn.textContent = '加载'; }, 2000);
-  }
-}
-
-function setPlayMode(mode) {
-  apiCall('/api/config', { play_mode: mode });
-  $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-}
-
-// ==================== Preferences ====================
-let prefsData = {};
-
-function renderPrefs() {
-  const container = $('#pref-list');
-  const entries = Object.entries(prefsData);
-  if (!entries.length) {
-    container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:4px;">暂无偏好设置</div>';
-    return;
-  }
-  container.innerHTML = entries.map(([bv, pref]) => `
-    <div style="display:flex;gap:6px;align-items:center;background:var(--panel2);border-radius:var(--radius-sm);padding:8px 10px;flex-wrap:wrap;">
-      <span style="font-size:13px;min-width:110px;color:var(--accent2);" title="${bv}">${bv}</span>
-      <span style="color:var(--text2);font-size:11px;">p:</span>
-      <input type="number" min="1" value="${pref.p || ''}" placeholder="-" style="width:50px;font-size:12px;" onchange="updatePref('${bv}','p',this.value)" id="pref-p-${bv}">
-      <span style="color:var(--text2);font-size:11px;">开始:</span>
-      <input type="number" min="0" value="${pref.beginTime || ''}" placeholder="-" style="width:55px;font-size:12px;" onchange="updatePref('${bv}','beginTime',this.value)" id="pref-begin-${bv}">
-      <span style="color:var(--text2);font-size:11px;">结束:</span>
-      <input type="number" min="0" value="${pref.endTime || ''}" placeholder="-" style="width:55px;font-size:12px;" onchange="updatePref('${bv}','endTime',this.value)" id="pref-end-${bv}">
-      <button class="btn btn-danger btn-xs" onclick="deletePref('${bv}')">✕</button>
-    </div>
-  `).join('');
-}
-
-function updatePref(bvid, key, val) {
-  const body = { bvid };
-  if (val !== '') body[key] = parseInt(val);
-  // Send all current values for this BV to avoid clearing other fields
-  const cur = prefsData[bvid] || {};
-  if (cur.p) body.p = cur.p;
-  if (cur.beginTime) body.beginTime = cur.beginTime;
-  if (cur.endTime) body.endTime = cur.endTime;
-  body[key] = val !== '' ? parseInt(val) : null;
-  // Clean nulls
-  Object.keys(body).forEach(k => { if (body[k] === null) delete body[k]; });
-  if (key === 'p' && val === '') delete body.p;
-  if (key === 'beginTime' && val === '') delete body.beginTime;
-  if (key === 'endTime' && val === '') delete body.endTime;
-
-  apiCall('/api/preference/set', body).then(r => {
-    if (r && r.ok) { prefsData[bvid] = r.preference; renderPrefs(); }
-  });
-}
-
-async function addPreference() {
-  const bvid = $('#pref-bv-select').value;
-  if (!bvid) return alert('请选择一个 BV');
-  const body = { bvid };
-  const p = $('#pref-p-input').value;
-  const b = $('#pref-begin-input').value;
-  const e = $('#pref-end-input').value;
-  if (p) body.p = parseInt(p);
-  if (b) body.beginTime = parseInt(b);
-  if (e) body.endTime = parseInt(e);
-  const r = await apiCall('/api/preference/set', body);
-  if (r && r.ok) {
-    prefsData[bvid] = r.preference;
-    renderPrefs();
-    $('#pref-p-input').value = '';
-    $('#pref-begin-input').value = '';
-    $('#pref-end-input').value = '';
-  }
-}
-
-function deletePref(bvid) {
-  if (!confirm('删除 ' + bvid + ' 的偏好？')) return;
-  apiCall('/api/preference/delete', { bvid }).then(r => {
-    if (r && r.ok) { delete prefsData[bvid]; renderPrefs(); }
-  });
-}
-
-function onVolumeChange(val) {
-  $('#vol-label').textContent = val;
-  apiCall('/api/playback/volume', { volume: parseInt(val) });
-}
-
-function seekClick(e) {
-  const rect = $('#progress-wrap').getBoundingClientRect();
-  const pct = ((e.clientX - rect.left) / rect.width) * 100;
-  apiCall('/api/playback/seek', { position: Math.max(0, Math.min(100, pct)) });
-}
-
-function playIndex(i) {
-  apiCall('/api/playback/play_index', { index: i });
-}
-
-function addBv() {
-  const bvid = $('#add-bv-input').value.trim();
-  if (!bvid) return;
-  apiCall('/api/playlist/add', { bvid }).then(() => {
-    $('#add-bv-input').value = '';
-    lastIndex = -1;
-  });
-}
-
-function removeBv(i) {
-  if (!confirm('确定要移除这个视频吗？')) return;
-  apiCall('/api/playlist/remove', { index: i }).then(() => { lastIndex = -1; });
-}
-
-async function moveUp(i) {
-  if (i <= 0) return;
-  await apiCall('/api/playlist/move', { from_index: i, to_index: i - 1 });
-  lastIndex = -1;
-}
-
-async function moveDown(i) {
-  await apiCall('/api/playlist/move', { from_index: i, to_index: i + 1 });
-  lastIndex = -1;
-}
-
-function refreshPlaylist() {
-  apiCall('/api/playlist/refresh', {}).then(r => {
-    if (r && !r.ok) alert('刷新失败: ' + (r.error || '请先设置 UID 和收藏夹'));
-    else lastIndex = -1;
-  });
-}
-
-function onSepPageChange(checked) {
-  apiCall('/api/config', { sep_page: checked });
-}
-
-function onDefaultVolChange(val) {
-  const v = Math.max(0, Math.min(100, parseInt(val) || 30));
-  apiCall('/api/config', { default_volume: v });
-}
-
-$('#add-bv-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') addBv();
-});
-
-// Mark user inputs as dirty on manual edit so poll() won't overwrite
-$('#uid-input').addEventListener('focus', () => { userInputsDirty = true; });
-$('#favname-input').addEventListener('focus', () => { userInputsDirty = true; });
-$('#uid-input').addEventListener('input', () => { userInputsDirty = true; });
-$('#favname-input').addEventListener('input', () => { userInputsDirty = true; });
-
-startPolling();
+$('#add-bv-input').addEventListener('keydown',function(e){if(e.key==='Enter')addBv()});
+['#uid-input','#favname-input'].forEach(function(s){$(s).addEventListener('focus',function(){dirty=true});$(s).addEventListener('input',function(){dirty=true})});
+$('#default-vol-input').addEventListener('focus',function(){volDirty=true});$('#default-vol-input').addEventListener('input',function(){volDirty=true});
+setInterval(poll,800);poll();setInterval(pollPrefs,8000);
 </script>
 </body>
 </html>

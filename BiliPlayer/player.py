@@ -69,23 +69,40 @@ class BiliMusicPlayer:
 
     def get_next(self) -> str:
         """Return the next BV based on play_mode ('sequential'|'shuffle'|'repeat_one')."""
+        print(f"[get_next] _pending_bvid={self._pending_bvid}, bv_list len={len(self.bv_list)}, current_bv={self.current_bv}, mode={self.play_mode}", flush=True)
+
         if self._pending_bvid is not None:
             bv = self._pending_bvid
             self._pending_bvid = None
             if bv in self.bv_list:
                 self.random_cur = self.bv_list.index(bv)
+            print(f"[get_next] pending → {bv}", flush=True)
             return bv
 
         if self.shared_state is not None:
             web_pl = self.shared_state.get_playlist()
+            print(f"[get_next] shared_state playlist len={len(web_pl)}", flush=True)
             if web_pl and web_pl != self.bv_list:
+                print(f"[get_next] sync bv_list from shared_state", flush=True)
                 self.bv_list = web_pl
+                if self.current_bv in web_pl:
+                    self.random_cur = web_pl.index(self.current_bv)
             self.play_mode = self.shared_state.play_mode
 
+        # Fallback: if local list is empty but shared_state has items, use those
+        if not self.bv_list and self.shared_state is not None:
+            fb = self.shared_state.get_playlist()
+            print(f"[get_next] fallback: shared_state playlist len={len(fb)}", flush=True)
+            if fb:
+                self.bv_list = fb
+                self.random_cur = 0
+
         if not self.bv_list:
+            print(f"[get_next] bv_list empty, returning '{self.current_bv or ''}'", flush=True)
             return self.current_bv or ""
 
-        if self.play_mode == "repeat_one":
+        if self.play_mode == "repeat_one" and self.current_bv:
+            print(f"[get_next] repeat_one → {self.current_bv}", flush=True)
             return self.current_bv
 
         if self.play_mode == "sequential":
@@ -93,11 +110,15 @@ class BiliMusicPlayer:
                 idx = self.bv_list.index(self.current_bv)
                 next_idx = (idx + 1) % len(self.bv_list)
                 self.random_cur = next_idx
+                print(f"[get_next] sequential → {self.bv_list[next_idx]}", flush=True)
                 return self.bv_list[next_idx]
             self.random_cur = 0
+            print(f"[get_next] sequential(first) → {self.bv_list[0]}", flush=True)
             return self.bv_list[0]
 
-        return self.get_random_next()
+        result = self.get_random_next()
+        print(f"[get_next] shuffle → {result}", flush=True)
+        return result
 
     def _on_timeupdate(self, cur, total):
         # prt(f"Time update: {cur:.2f} / {total:.2f}")
@@ -163,6 +184,7 @@ class BiliMusicPlayer:
             await self.page.expose_function("biliMusic_on_ended", self._on_ended)
 
         bvid = self.get_next() if bvid is None else bvid
+        print(f"[play] bvid={repr(bvid)}, current_bv={self.current_bv}", flush=True)
         pref = self.preference.get(bvid, {})
         self.current_bv = bvid
         url = f"https://www.bilibili.com/video/{bvid}"

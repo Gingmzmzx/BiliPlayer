@@ -27,6 +27,7 @@ class SharedState:
         # ---- Playlist ----
         self.playlist: list = []            # BV id strings
         self.playlist_titles: dict = {}     # bvid -> title
+        self.playlist_covers: dict = {}     # bvid -> cover image URL
         self.current_index: int = -1
 
         # ---- User info ----
@@ -75,10 +76,11 @@ class SharedState:
     # Playlist helpers (lock-protected)
     # ------------------------------------------------------------------
 
-    def set_playlist(self, bv_list: list, titles: dict = None) -> None:
+    def set_playlist(self, bv_list: list, titles: dict = None, covers: dict = None) -> None:
         with self._lock:
             self.playlist = list(bv_list)
             self.playlist_titles = dict(titles) if titles else {}
+            self.playlist_covers = dict(covers) if covers else {}
             self.current_index = 0 if bv_list else -1
 
     def add_to_playlist(self, bvid: str, title: str = None) -> None:
@@ -162,6 +164,7 @@ class SharedState:
                 "is_playing": self.is_playing,
                 "playlist": list(self.playlist),
                 "playlist_titles": dict(self.playlist_titles),
+                "playlist_covers": dict(self.playlist_covers),
                 "current_index": self.current_index,
                 "play_mode": self.play_mode,
                 "uid": self.uid,

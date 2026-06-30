@@ -152,7 +152,9 @@ async def play_main(uid, favName):
     favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
     bv_ids = [it['bvid'] for it in favList]
     titles = {it['bvid']: it['title'] for it in favList}
-    shared_state.set_playlist(bv_ids, titles)
+    covers = {it['bvid']: it.get('cover', '') for it in favList}
+    print(f"[play_main] extracted {len(bv_ids)} BVIDs: {bv_ids[:3]}...", flush=True)
+    shared_state.set_playlist(bv_ids, titles, covers)
 
     biliPlayer = BiliMusicPlayer(
         browser=browser,
@@ -197,7 +199,8 @@ async def play_main(uid, favName):
                     )
                     bv_ids = [it['bvid'] for it in new_list]
                     titles = {it['bvid']: it['title'] for it in new_list}
-                    shared_state.set_playlist(bv_ids, titles)
+                    covers = {it['bvid']: it.get('cover', '') for it in new_list}
+                    shared_state.set_playlist(bv_ids, titles, covers)
                     biliPlayer.bv_list = bv_ids
                     if biliPlayer.current_bv in bv_ids:
                         biliPlayer.random_cur = bv_ids.index(biliPlayer.current_bv)
@@ -218,7 +221,8 @@ async def play_main(uid, favName):
                     )
                     bv_ids = [it['bvid'] for it in new_list]
                     titles = {it['bvid']: it['title'] for it in new_list}
-                    shared_state.set_playlist(bv_ids, titles)
+                    covers = {it['bvid']: it.get('cover', '') for it in new_list}
+                    shared_state.set_playlist(bv_ids, titles, covers)
                     biliPlayer.bv_list = bv_ids
                     biliPlayer._needs_reload = False
                 except Exception as e:

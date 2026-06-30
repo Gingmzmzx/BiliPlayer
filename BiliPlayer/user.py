@@ -37,17 +37,25 @@ class User:
             (() => {
                 const seen = new Set();
                 const result = [];
-                // Each video card: .bili-video-card__title a contains the title
-                for (const el of document.querySelectorAll('.bili-video-card__title a')) {
-                    const href = el.href || '';
-                    if (!href.includes('www.bilibili.com/video')) continue;
+                for (const card of document.querySelectorAll('.bili-video-card')) {
+                    // Title from .bili-video-card__title a
+                    const titleA = card.querySelector('.bili-video-card__title a');
+                    if (!titleA) continue;
+                    const href = titleA.href || '';
                     const m = href.match(/\\/video\\/([^/?]+)/);
                     if (!m) continue;
                     const bvid = m[1];
                     if (seen.has(bvid)) continue;
                     seen.add(bvid);
-                    const title = (el.textContent || '').trim();
-                    result.push({bvid: bvid, title: title || bvid});
+                    const title = (titleA.textContent || '').trim();
+                    // Cover from .b-img__inner
+                    const img = card.querySelector('.b-img__inner');
+                    let cover = '';
+                    if (img) {
+                        cover = (img.src || '').trim();
+                        if (cover.startsWith('//')) cover = 'https:' + cover;
+                    }
+                    result.push({bvid: bvid, title: title || bvid, cover: cover});
                 }
                 return JSON.stringify(result);
             })()
@@ -55,4 +63,7 @@ class User:
         favList = json.loads(raw)
 
         await self.page.close()
+        if self.context:
+            await self.context.close()
+            self.context = None
         return favList
