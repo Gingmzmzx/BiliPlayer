@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import random
 from playwright.async_api import Browser
@@ -26,6 +28,8 @@ class BiliMusicPlayer:
                  default_volume: int,
                  sep_page: bool,
                  preference=None,
+                 shared_state=None,
+                 play_mode: str = "shuffle",
                  on_timeupdate = lambda cur, total: None,
                  on_ended = lambda: None,
                  on_play = lambda: None
@@ -48,6 +52,10 @@ class BiliMusicPlayer:
         self.sep_page = sep_page
         self.random_cur = 0
         self.context = None
+        self.shared_state = shared_state
+        self.play_mode: str = play_mode
+        self._pending_bvid: str | None = None
+        self._needs_reload: bool = False
 
     def get_random_next(self) -> str:
         if self.random_cur < len(self.bv_list):
@@ -58,6 +66,38 @@ class BiliMusicPlayer:
             random.shuffle(self.bv_list)
         self.random_cur = 1
         return self.bv_list[0]
+
+    def get_next(self) -> str:
+        """Return the next BV based on play_mode ('sequential'|'shuffle'|'repeat_one')."""
+        if self._pending_bvid is not None:
+            bv = self._pending_bvid
+            self._pending_bvid = None
+            if bv in self.bv_list:
+                self.random_cur = self.bv_list.index(bv)
+            return bv
+
+        if self.shared_state is not None:
+            web_pl = self.shared_state.get_playlist()
+            if web_pl and web_pl != self.bv_list:
+                self.bv_list = web_pl
+            self.play_mode = self.shared_state.play_mode
+
+        if not self.bv_list:
+            return self.current_bv or ""
+
+        if self.play_mode == "repeat_one":
+            return self.current_bv
+
+        if self.play_mode == "sequential":
+            if self.current_bv in self.bv_list:
+                idx = self.bv_list.index(self.current_bv)
+                next_idx = (idx + 1) % len(self.bv_list)
+                self.random_cur = next_idx
+                return self.bv_list[next_idx]
+            self.random_cur = 0
+            return self.bv_list[0]
+
+        return self.get_random_next()
 
     def _on_timeupdate(self, cur, total):
         # prt(f"Time update: {cur:.2f} / {total:.2f}")
@@ -122,7 +162,7 @@ class BiliMusicPlayer:
             await self.page.expose_function("biliMusic_on_timeupdate", self._on_timeupdate)
             await self.page.expose_function("biliMusic_on_ended", self._on_ended)
 
-        bvid = self.get_random_next() if bvid is None else bvid
+        bvid = self.get_next() if bvid is None else bvid
         pref = self.preference.get(bvid, {})
         self.current_bv = bvid
         url = f"https://www.bilibili.com/video/{bvid}"
@@ -171,6 +211,34 @@ class BiliMusicPlayer:
                 self.state.progress = -1
             if self.state.quit:
                 break
+
+            if self.shared_state is not None:
+                cmd = self.shared_state.get_command()
+                if cmd is not None:
+                    cmd_name, cmd_val = cmd
+                    if cmd_name == "next":
+                        self.next_song()
+                    elif cmd_name == "pause":
+                        self.toggle_pause()
+                    elif cmd_name == "seek":
+                        if cmd_val is not None:
+                            self.set_progress(self.duration * (cmd_val / 100))
+                    elif cmd_name == "volume":
+                        if cmd_val is not None:
+                            self.set_volume(cmd_val)
+                            self.shared_state.volume = cmd_val
+                    elif cmd_name == "play_index":
+                        if cmd_val is not None:
+                            pl = self.shared_state.get_playlist()
+                            if 0 <= cmd_val < len(pl):
+                                self._pending_bvid = pl[cmd_val]
+                                self.next_song()
+                    elif cmd_name == "reload_playlist":
+                        self._needs_reload = True
+                        self.next_song()
+                    elif cmd_name == "quit":
+                        self.quit()
+
             await asyncio.sleep(.5)
 
         await self.page.close()

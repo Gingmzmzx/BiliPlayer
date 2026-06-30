@@ -14,6 +14,8 @@ from .user import User
 from .utils import prt
 from .gui import RightSideProgress
 from .config import Config, DEBUG_FLG
+from .web_state import SharedState
+from .web_server import start_web_server
 
 
 # ===================== 全局信号类 =====================
@@ -32,6 +34,9 @@ TASK_RUNNING = True
 
 # 全局Loading窗口实例
 loading_window = None
+
+# ===================== 共享状态（web ↔ player 桥梁） =====================
+shared_state = SharedState()
 
 
 # ===================== 美观 Loading 窗口 =====================
@@ -115,7 +120,7 @@ class LoadingWindow(QWidget):
 
 # ===================== 异步播放主协程 =====================
 async def play_main(uid, favName):
-    global TASK_RUNNING, seek_val
+    global TASK_RUNNING, seek_val, shared_state
     p = await async_playwright().start()
     browser = await p.chromium.launch(
         channel="chrome",
@@ -139,32 +144,40 @@ async def play_main(uid, favName):
         ]
     )
 
-    favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
-    prt(favList)
-    biliPlayer = BiliMusicPlayer(browser=browser, bv_list=favList, preference=config.get("Player.preference"), sep_page=config.get("Player.sepPage"), default_volume=config.get("Player.defaultVolume"))
+    shared_state.uid = int(uid)
+    shared_state.fav_name = favName
+    shared_state.play_mode = config.get("Player.playMode")
+    shared_state.volume = config.get("Player.defaultVolume")
 
-    # 播放进度回调 → 更新UI
+    favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
+    shared_state.set_playlist(favList)
+
+    biliPlayer = BiliMusicPlayer(
+        browser=browser,
+        bv_list=favList,
+        preference=config.get("Player.preference"),
+        sep_page=config.get("Player.sepPage"),
+        default_volume=config.get("Player.defaultVolume"),
+        shared_state=shared_state,
+        play_mode=shared_state.play_mode,
+    )
+
     def timeupdate(cur, total):
         app_sig.progress_update.emit(cur, total, biliPlayer.current_title, biliPlayer.current_bv)
+        shared_state.update_playback(cur, total, biliPlayer.current_bv, biliPlayer.current_title)
 
     biliPlayer.callback_timeupdate = timeupdate
 
-    # ========== 关键：执行 run() 前Loading已显示，执行完发送关闭信号 ==========
     prt("biliPlayer实例化完成，关闭Loading...")
-    app_sig.loading_close.emit()  # 通知UI线程关闭Loading
+    app_sig.loading_close.emit()
 
-    # 1. 播放主协程（长驻）
-    async def play_task():
-        await biliPlayer.play()
-
-    # 2. 进度跳转监听协程
     async def seek_monitor():
-        global seek_val, toggle_pause
+        global seek_val
         while TASK_RUNNING:
             if seek_val != -1:
                 print("收到跳转指令", seek_val)
                 seek = biliPlayer.duration * (seek_val / 100)
-                if abs(seek-biliPlayer.cur) >= 3:
+                if abs(seek - biliPlayer.cur) >= 3:
                     biliPlayer.set_progress(seek)
                 else:
                     print("toggle_pause")
@@ -172,13 +185,49 @@ async def play_main(uid, favName):
                 seek_val = -1
             await asyncio.sleep(0.1)
 
-    # 两个协程并行运行
-    try:
-        await asyncio.gather(play_task(), seek_monitor())
-    except Exception as e:
-        QMessageBox.warning(None, "Runtime Error", f"并行任务异常\n{e}")
+    async def reload_monitor():
+        nonlocal biliPlayer
+        while TASK_RUNNING:
+            if shared_state.needs_reload():
+                try:
+                    new_list = await User(browser=browser).get_favlist(
+                        uid=shared_state.uid, favName=shared_state.fav_name
+                    )
+                    shared_state.set_playlist(new_list)
+                    biliPlayer.bv_list = new_list
+                    if biliPlayer.current_bv in new_list:
+                        biliPlayer.random_cur = new_list.index(biliPlayer.current_bv)
+                except Exception as e:
+                    pass
+            await asyncio.sleep(1.0)
 
-    # 资源释放
+    seek_task = asyncio.create_task(seek_monitor())
+    reload_task = asyncio.create_task(reload_monitor())
+
+    try:
+        while TASK_RUNNING:
+            await biliPlayer.play()
+            if biliPlayer._needs_reload:
+                try:
+                    new_list = await User(browser=browser).get_favlist(
+                        uid=shared_state.uid, favName=shared_state.fav_name
+                    )
+                    shared_state.set_playlist(new_list)
+                    biliPlayer.bv_list = new_list
+                    biliPlayer._needs_reload = False
+                except Exception as e:
+                    pass
+                    biliPlayer._needs_reload = False
+            if biliPlayer.state.quit:
+                TASK_RUNNING = False
+                break
+    except Exception as e:
+        QMessageBox.warning(None, "Runtime Error", f"播放任务异常\n{e}")
+    finally:
+        TASK_RUNNING = False
+        seek_task.cancel()
+        reload_task.cancel()
+
     prt("开始释放资源...")
     await browser.close()
     await p.stop()
@@ -200,19 +249,23 @@ def async_worker(uid, favName):
 
 # ===================== UI 主线程 =====================
 def main(app, uid, favName):
-    global TASK_RUNNING, seek_val, loading_window
+    global TASK_RUNNING, seek_val, loading_window, shared_state
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     # 初始化 Loading 窗口并显示
     loading_window = LoadingWindow(uid, favName)
     loading_window.show()
 
-    # 绑定关闭Loading信号（主线程内执行，安全）
     def close_loading():
         if loading_window and loading_window.isVisible():
             loading_window.close()
 
     app_sig.loading_close.connect(close_loading)
+
+    # ---- 启动 Web 控制服务器 ----
+    web_port = config.get("Player.webPort")
+    start_web_server(shared_state, config, port=web_port)
+    print(f"Web 控制面板已启动: http://localhost:{web_port}", flush=True)
 
     handle_click_val = -1
     def ui_on_mouse_release(percent):

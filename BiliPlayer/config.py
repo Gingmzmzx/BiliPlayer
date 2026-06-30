@@ -1,4 +1,4 @@
-DEBUG_FLG = True
+DEBUG_FLG = False
 with open("BiliPlayer/resources/stealth.js", "r", encoding="utf-8") as f:
     STEALTH_JS = f.read()
 
@@ -10,6 +10,8 @@ class Config:
         "Player": {
             "sepPage": True,
             "defaultVolume": 30,
+            "playMode": "shuffle",
+            "webPort": 58000,
             "preference": {
                 "BV1ti4y1K7uw": {
                     "p": 2
