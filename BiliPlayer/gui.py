@@ -15,6 +15,7 @@ class CustomSlider(QSlider):
         self.handle_size = 18
         self.offset_size = 9
         self._is_mouse_pressed = False
+        self.setMouseTracking(True)
 
     def _is_mouse_on_handle(self, pos: QPoint) -> bool:
         if self.orientation() != Qt.Orientation.Vertical:
@@ -117,8 +118,6 @@ class RightSideProgress(QWidget):
         self.callback_on_handle_leave = on_handle_leave
         self.callback_on_progress_change = on_progress_change
 
-        # macOS: AA_PluginApplication 已隐藏 Dock，不加 Tool（Tool 创建 NSPanel 会引入拖拽问题）
-        # Windows: 加 Tool 以隐藏任务栏图标
         flags = (
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
@@ -129,13 +128,13 @@ class RightSideProgress(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        screen = QApplication.primaryScreen().geometry()
+        screen = QApplication.primaryScreen().availableGeometry()
         scr_w = screen.width()
         scr_h = screen.height()
         win_width = 40
         win_height = scr_h
         win_x = scr_w - win_width
-        win_y = 0
+        win_y = screen.top()
         self.setGeometry(win_x, win_y, win_width, win_height)
 
         # 滑块
@@ -178,8 +177,13 @@ class RightSideProgress(QWidget):
         self.slider.on_handle_click = self.on_slider_click
         self.slider.on_mouse_release = self.on_mouse_up
         self.slider.valueChanged.connect(self.on_progress_change)
-        self.slider.on_handle_enter = self.on_handle_enter
-        self.slider.on_handle_leave = self.on_handle_leave
+
+        # ---- 定时轮询 tooltip（macOS 上 mouseMoveEvent 失焦不触发） ----
+        from PyQt6.QtCore import QTimer
+        self._hover_timer = QTimer(self)
+        self._hover_timer.timeout.connect(self._poll_hover)
+        self._hover_timer.start(120)
+        self._was_hover = False
 
         # 滑块样式
         self.slider.setStyleSheet("""
@@ -260,6 +264,19 @@ class RightSideProgress(QWidget):
     def on_handle_leave(self, value: int):
         self.tooltip.hide()
         self.callback_on_handle_leave(value)
+
+    def _poll_hover(self):
+        """Timer-based hover detection (works even when window is unfocused on macOS)."""
+        from PyQt6.QtGui import QCursor
+        gp = QCursor.pos()
+        lp = self.slider.mapFromGlobal(gp)
+        on_handle = self.slider._is_mouse_on_handle(lp)
+        if on_handle and not self._was_hover:
+            self._was_hover = True
+            self.on_handle_enter(self.slider.value())
+        elif not on_handle and self._was_hover:
+            self._was_hover = False
+            self.on_handle_leave(self.slider.value())
 
     def change_progress(self, value: int):
         if self.slider.getIfMosuePressed():
