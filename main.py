@@ -102,6 +102,7 @@ class SetupDialog(QDialog):
 if __name__ == "__main__":
     if sys.platform == "darwin":
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_PluginApplication, True)
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
     app = QApplication(sys.argv)
 
     config = Config()

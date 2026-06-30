@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 import threading
 
@@ -8,6 +9,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QFont
+
+from PyQt6.QtGui import QIcon, QAction, QDesktopServices
+from PyQt6.QtCore import QUrl
+from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
 
 from .player import BiliMusicPlayer
 from .user import User
@@ -325,6 +330,56 @@ def main(app, uid, favName):
             loading_window.close()
 
     app.aboutToQuit.connect(on_app_quit)
+
+    # ---- WebView 窗口（嵌入式浏览器） ----
+    webview_window = None
+    try:
+        from PyQt6.QtWebEngineWidgets import QWebEngineView
+        webview_window = QWebEngineView()
+        webview_window.setWindowTitle("BiliPlayer 控制面板")
+        webview_window.resize(1100, 750)
+        webview_window.setMinimumSize(900, 600)
+        has_webengine = True
+    except ImportError as e:
+        print(f"[webview] PyQt6-WebEngine 不可用: {e}", flush=True)
+        has_webengine = False
+        webview_window = None
+
+    def open_control_panel():
+        url = f"http://localhost:{web_port}"
+        if has_webengine:
+            if not webview_window.isVisible():
+                screen = app.primaryScreen().availableGeometry()
+                webview_window.move(
+                    (screen.width() - webview_window.width()) // 2,
+                    (screen.height() - webview_window.height()) // 2
+                )
+            webview_window.setUrl(QUrl(url))
+            webview_window.show()
+            webview_window.raise_()
+        else:
+            QDesktopServices.openUrl(QUrl(url))
+
+    # ---- 系统托盘图标 ----
+    tray = QSystemTrayIcon()
+    icon_path = "BiliPlayer/resources/bilitv.png"
+    if os.path.exists(icon_path):
+        tray.setIcon(QIcon(icon_path))
+    else:
+        tray.setIcon(app.style().standardIcon(app.style().StandardPixmap.SP_MediaPlay))
+    tray.setToolTip("BiliPlayer")
+
+    tray_menu = QMenu()
+    open_action = QAction("打开控制面板", tray_menu)
+    open_action.triggered.connect(open_control_panel)
+    tray_menu.addAction(open_action)
+    tray_menu.addSeparator()
+    quit_action = QAction("退出", tray_menu)
+    quit_action.triggered.connect(lambda: on_app_quit() or app.quit())
+    tray_menu.addAction(quit_action)
+    tray.setContextMenu(tray_menu)
+    tray.activated.connect(lambda reason: open_control_panel() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
+    tray.show()
 
     # 启动播放子线程
     work_thread = threading.Thread(target=async_worker, args=(uid, favName,), daemon=False)

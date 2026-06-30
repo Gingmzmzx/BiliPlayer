@@ -20,7 +20,11 @@ class CustomSlider(QSlider):
     def _is_mouse_on_handle(self, pos: QPoint) -> bool:
         if self.orientation() != Qt.Orientation.Vertical:
             return False
+        pos_x = pos.x()
         pos_y = pos.y()
+        # X: must be within slider width (with small margin)
+        if pos_x < -10 or pos_x > self.width() + 10:
+            return False
         slider_h = self.height()
         val = self.value()
         min_val = self.minimum()
