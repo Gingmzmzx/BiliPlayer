@@ -1,0 +1,4 @@
+PyQt6>=6.4
+PyQt6-WebEngine>=6.4
+Flask>=2.0
+playwright>=1.30
