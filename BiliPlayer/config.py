@@ -7,6 +7,9 @@ from .exceptions import ConfigException
 
 class Config:
     originData = {
+        "uid": 227711953,
+        "favName": "豪听",
+        "configured": False,
         "Player": {
             "sepPage": True,
             "defaultVolume": 30,

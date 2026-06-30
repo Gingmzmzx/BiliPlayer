@@ -37,6 +37,11 @@ def create_app(shared_state, config):
         ss.uid = int(uid)
         ss.fav_name = fav_name
         ss.mark_reload()
+        cfg = app.config["BILI_CONFIG"]
+        cfg.set("uid", ss.uid)
+        cfg.set("favName", fav_name)
+        cfg.set("configured", True)
+        cfg.save()
         return jsonify({"ok": True})
 
     @app.route("/api/playlist", methods=["GET"])

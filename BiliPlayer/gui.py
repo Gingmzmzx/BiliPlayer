@@ -160,7 +160,7 @@ class RightSideProgress(QWidget):
                                         stop:0 rgba(45, 45, 48, 0.96), 
                                         stop:1 rgba(28, 28, 30, 0.96));
             color: #f0f0f0;
-            font-family: "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
             padding: 10px 14px;
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.12);

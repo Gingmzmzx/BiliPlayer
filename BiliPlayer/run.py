@@ -89,11 +89,11 @@ class LoadingWindow(QWidget):
         # 加载文字
         self.load_label = QLabel("BiliPlayer Loading")
         self.load_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.load_label.setFont(QFont("Microsoft YaHei", 14, QFont.Weight.Bold))
+        self.load_label.setFont(QFont("system-ui", 14, QFont.Weight.Bold))
         self.load_label.setStyleSheet("color: #e0e0ff;")
         self.info_label = QLabel(f"UID: {self.uid} FavName: {self.favName}")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.info_label.setFont(QFont("Microsoft YaHei", 9, QFont.Weight.Light))
+        self.info_label.setFont(QFont("system-ui", 9, QFont.Weight.Light))
         self.info_label.setStyleSheet("color: #e0e0ff;")
         bg_layout.addWidget(self.load_label)
         bg_layout.addWidget(self.info_label)
