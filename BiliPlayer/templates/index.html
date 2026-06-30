@@ -311,7 +311,7 @@ async function poll() {
 
   if (data.current_index !== lastIndex) {
     lastIndex = data.current_index;
-    renderPlaylist(data.playlist || [], data.current_index);
+    renderPlaylist(data.playlist || [], data.playlist_titles || {}, data.current_index);
     // Update BV selector for preference form
     const sel = $('#pref-bv-select');
     const curVal = sel.value;
@@ -327,23 +327,34 @@ async function pollPrefs() {
   if (data) { prefsData = data; renderPrefs(); }
 }
 
-function renderPlaylist(playlist, curIdx) {
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderPlaylist(playlist, titles, curIdx) {
   const container = $('#playlist-container');
   if (!playlist.length) {
     container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:8px;">暂无数据…</div>';
     return;
   }
-  container.innerHTML = playlist.map((bv, i) => `
+  container.innerHTML = playlist.map((bv, i) => {
+    const t = titles[bv] || bv;
+    return `
     <div class="playlist-item${i === curIdx ? ' current' : ''}" onclick="playIndex(${i})">
       <span class="idx">${i === curIdx ? '▶' : '#' + (i + 1)}</span>
-      <span class="bv" title="${bv}">${bv}</span>
+      <span class="bv" title="${escapeHtml(t)}&#10;${bv}">
+        <span style="color:#e0e0e8;font-size:13px;">${escapeHtml(t)}</span>
+        <span style="color:var(--text2);font-size:11px;display:block;">${bv}</span>
+      </span>
       <span class="actions">
         <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();moveUp(${i})" ${i===0?'disabled':''}>▲</button>
         <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();moveDown(${i})" ${i===playlist.length-1?'disabled':''}>▼</button>
         <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeBv(${i})">✕</button>
       </span>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function startPolling() {

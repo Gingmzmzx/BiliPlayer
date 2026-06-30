@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import json
 from playwright.async_api import Browser
 from .utils import prt
 from .config import STEALTH_JS
@@ -9,7 +12,7 @@ class User:
         self.page = None
         self.context = None
 
-    async def get_favlist(self, uid: int, favName: str) -> list:
+    async def get_favlist(self, uid: int, favName: str) -> list[dict]:
         if not self.context:
             self.context = await self.browser.new_context(
                 user_agent=(
@@ -30,14 +33,26 @@ class User:
         await self.page.click(f".fav-sidebar-item[title='{favName}']")
         await self.page.wait_for_selector(f".favlist-info-detail__title-row div.vui_ellipsis.multi-mode:text('{favName}')")
 
-        favList = await self.page.evaluate("""
-                                 let aaadata=[];
-                                 aaadata = Array.from(new Set(aaadata.concat(Array.from(document.querySelectorAll('a')).filter(el => el.href.includes('www.bilibili.com/video')).map(el => el.origin + el.pathname))));
-                                 aaadata.join(' ');
-                                """)
-        favList = str(favList).split(" ")
-        favList = [i.replace("https://www.bilibili.com/video/", "") for i in favList]
-        prt(favList)
+        raw = await self.page.evaluate("""
+            (() => {
+                const seen = new Set();
+                const result = [];
+                // Each video card: .bili-video-card__title a contains the title
+                for (const el of document.querySelectorAll('.bili-video-card__title a')) {
+                    const href = el.href || '';
+                    if (!href.includes('www.bilibili.com/video')) continue;
+                    const m = href.match(/\\/video\\/([^/?]+)/);
+                    if (!m) continue;
+                    const bvid = m[1];
+                    if (seen.has(bvid)) continue;
+                    seen.add(bvid);
+                    const title = (el.textContent || '').trim();
+                    result.push({bvid: bvid, title: title || bvid});
+                }
+                return JSON.stringify(result);
+            })()
+        """)
+        favList = json.loads(raw)
 
         await self.page.close()
         return favList

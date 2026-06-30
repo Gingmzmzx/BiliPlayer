@@ -44,6 +44,7 @@ def create_app(shared_state, config):
         ss = app.config["SHARED_STATE"]
         return jsonify({
             "playlist": ss.get_playlist(),
+            "titles": ss.playlist_titles,
             "current_index": ss.get_current_index(),
         })
 

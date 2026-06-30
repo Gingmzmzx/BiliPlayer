@@ -150,11 +150,13 @@ async def play_main(uid, favName):
     shared_state.volume = config.get("Player.defaultVolume")
 
     favList = await User(browser=browser).get_favlist(uid=uid, favName=favName)
-    shared_state.set_playlist(favList)
+    bv_ids = [it['bvid'] for it in favList]
+    titles = {it['bvid']: it['title'] for it in favList}
+    shared_state.set_playlist(bv_ids, titles)
 
     biliPlayer = BiliMusicPlayer(
         browser=browser,
-        bv_list=favList,
+        bv_list=bv_ids,
         preference=config.get("Player.preference"),
         sep_page=config.get("Player.sepPage"),
         default_volume=config.get("Player.defaultVolume"),
@@ -193,10 +195,12 @@ async def play_main(uid, favName):
                     new_list = await User(browser=browser).get_favlist(
                         uid=shared_state.uid, favName=shared_state.fav_name
                     )
-                    shared_state.set_playlist(new_list)
-                    biliPlayer.bv_list = new_list
-                    if biliPlayer.current_bv in new_list:
-                        biliPlayer.random_cur = new_list.index(biliPlayer.current_bv)
+                    bv_ids = [it['bvid'] for it in new_list]
+                    titles = {it['bvid']: it['title'] for it in new_list}
+                    shared_state.set_playlist(bv_ids, titles)
+                    biliPlayer.bv_list = bv_ids
+                    if biliPlayer.current_bv in bv_ids:
+                        biliPlayer.random_cur = bv_ids.index(biliPlayer.current_bv)
                 except Exception as e:
                     pass
             await asyncio.sleep(1.0)
@@ -212,8 +216,10 @@ async def play_main(uid, favName):
                     new_list = await User(browser=browser).get_favlist(
                         uid=shared_state.uid, favName=shared_state.fav_name
                     )
-                    shared_state.set_playlist(new_list)
-                    biliPlayer.bv_list = new_list
+                    bv_ids = [it['bvid'] for it in new_list]
+                    titles = {it['bvid']: it['title'] for it in new_list}
+                    shared_state.set_playlist(bv_ids, titles)
+                    biliPlayer.bv_list = bv_ids
                     biliPlayer._needs_reload = False
                 except Exception as e:
                     pass
@@ -222,7 +228,8 @@ async def play_main(uid, favName):
                 TASK_RUNNING = False
                 break
     except Exception as e:
-        QMessageBox.warning(None, "Runtime Error", f"播放任务异常\n{e}")
+        print(f"[play_main] 播放任务异常: {e}", flush=True)
+        import traceback; traceback.print_exc()
     finally:
         TASK_RUNNING = False
         seek_task.cancel()
@@ -242,7 +249,8 @@ def async_worker(uid, favName):
     try:
         loop.run_until_complete(play_main(uid, favName))
     except Exception as e:
-        QMessageBox.warning(None, "Runtime Error", f"播放任务异常\n{e}")
+        print(f"[async_worker] 播放任务异常: {e}", flush=True)
+        import traceback; traceback.print_exc()
     finally:
         loop.close()
 

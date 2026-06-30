@@ -25,8 +25,9 @@ class SharedState:
         self.is_playing: bool = True
 
         # ---- Playlist ----
-        self.playlist: list = []          # list of BV id strings
-        self.current_index: int = -1       # index in playlist of current_bv
+        self.playlist: list = []            # BV id strings
+        self.playlist_titles: dict = {}     # bvid -> title
+        self.current_index: int = -1
 
         # ---- User info ----
         self.uid: int = 0
@@ -74,14 +75,16 @@ class SharedState:
     # Playlist helpers (lock-protected)
     # ------------------------------------------------------------------
 
-    def set_playlist(self, bv_list: list) -> None:
+    def set_playlist(self, bv_list: list, titles: dict = None) -> None:
         with self._lock:
             self.playlist = list(bv_list)
+            self.playlist_titles = dict(titles) if titles else {}
             self.current_index = 0 if bv_list else -1
 
-    def add_to_playlist(self, bvid: str) -> None:
+    def add_to_playlist(self, bvid: str, title: str = None) -> None:
         with self._lock:
             self.playlist.append(bvid)
+            self.playlist_titles[bvid] = title or bvid
 
     def remove_from_playlist(self, index: int) -> bool:
         with self._lock:
@@ -133,6 +136,8 @@ class SharedState:
         self.current_title = title
         if bvid and bvid in self.playlist:
             self.current_index = self.playlist.index(bvid)
+        if bvid and title and self.playlist_titles.get(bvid, bvid) == bvid:
+            self.playlist_titles[bvid] = title
 
     def set_playing(self, playing: bool) -> None:
         self.is_playing = playing
@@ -142,15 +147,21 @@ class SharedState:
     # ------------------------------------------------------------------
 
     def snapshot(self) -> dict:
+        def _ok(v):
+            if isinstance(v, float) and (v != v):
+                return 0.0
+            return v
+
         with self._lock:
             return {
                 "current_bv": self.current_bv,
                 "current_title": self.current_title,
-                "current_time": self.current_time,
-                "duration": self.duration,
+                "current_time": _ok(self.current_time),
+                "duration": _ok(self.duration),
                 "volume": self.volume,
                 "is_playing": self.is_playing,
                 "playlist": list(self.playlist),
+                "playlist_titles": dict(self.playlist_titles),
                 "current_index": self.current_index,
                 "play_mode": self.play_mode,
                 "uid": self.uid,

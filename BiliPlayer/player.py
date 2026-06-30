@@ -128,7 +128,7 @@ class BiliMusicPlayer:
 
     async def _set_progress(self, progress):
         prt("_set_progress", progress)
-        await self.page.evaluate(f"$('video')[0].currentTime = {progress}")
+        await self.page.evaluate(f"document.querySelector('video').currentTime = {progress}")
 
     def set_progress(self, progress):
         self.state.progress = progress
