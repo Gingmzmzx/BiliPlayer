@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QFont
 
-from PyQt6.QtGui import QIcon, QAction, QDesktopServices
+from PyQt6.QtGui import QIcon, QAction, QDesktopServices, QCursor
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
 
@@ -337,6 +337,7 @@ def main(app, uid, favName):
         from PyQt6.QtWebEngineWidgets import QWebEngineView
         webview_window = QWebEngineView()
         webview_window.setWindowTitle("BiliPlayer 控制面板")
+        webview_window.setWindowIcon(QIcon("BiliPlayer/resources/logo.png"))
         webview_window.resize(1100, 750)
         webview_window.setMinimumSize(900, 600)
         has_webengine = True
@@ -362,23 +363,22 @@ def main(app, uid, favName):
 
     # ---- 系统托盘图标 ----
     tray = QSystemTrayIcon()
-    icon_path = "BiliPlayer/resources/bilitv.png"
-    if os.path.exists(icon_path):
-        tray.setIcon(QIcon(icon_path))
-    else:
-        tray.setIcon(app.style().standardIcon(app.style().StandardPixmap.SP_MediaPlay))
+    tray.setIcon(QIcon("BiliPlayer/resources/logo.png"))
     tray.setToolTip("BiliPlayer")
 
+    # 菜单
     tray_menu = QMenu()
-    open_action = QAction("打开控制面板", tray_menu)
-    open_action.triggered.connect(open_control_panel)
-    tray_menu.addAction(open_action)
+    tray_menu.addAction("打开控制面板", open_control_panel)
     tray_menu.addSeparator()
-    quit_action = QAction("退出", tray_menu)
-    quit_action.triggered.connect(lambda: on_app_quit() or app.quit())
-    tray_menu.addAction(quit_action)
-    tray.setContextMenu(tray_menu)
-    tray.activated.connect(lambda reason: open_control_panel() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
+    tray_menu.addAction("退出", lambda: on_app_quit() or app.quit())
+
+    def on_tray_activated(reason):
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            open_control_panel()
+        elif reason == QSystemTrayIcon.ActivationReason.Context:
+            tray_menu.popup(QCursor.pos())
+
+    tray.activated.connect(on_tray_activated)
     tray.show()
 
     # 启动播放子线程

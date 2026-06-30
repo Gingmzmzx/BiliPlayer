@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QApplication,
     QLabel, QWidget
 )
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 from BiliPlayer import run
@@ -104,6 +104,8 @@ if __name__ == "__main__":
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_PluginApplication, True)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
     app = QApplication(sys.argv)
+    app.setApplicationName("BiliPlayer")
+    app.setWindowIcon(QIcon("BiliPlayer/resources/logo.png"))
 
     config = Config()
     config.autoComplete()
