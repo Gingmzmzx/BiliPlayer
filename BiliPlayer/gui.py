@@ -190,10 +190,12 @@ class RightSideProgress(QWidget):
         self._hover_timer.start(120)
         self._was_hover = False
 
-        # 滑块样式（使用绝对路径适配 PyInstaller）
-        tv  = _resource("BiliPlayer/resources/bilitv.png")
-        tvh = _resource("BiliPlayer/resources/bilitv_hover.png")
-        tvp = _resource("BiliPlayer/resources/bilitv_pressed.png")
+        # 滑块样式（使用绝对路径，Windows 需用反斜杠转正斜杠）
+        def _url(p):
+            return _resource(p).replace("\\", "/")
+        tv  = _url("BiliPlayer/resources/bilitv.png")
+        tvh = _url("BiliPlayer/resources/bilitv_hover.png")
+        tvp = _url("BiliPlayer/resources/bilitv_pressed.png")
         self.slider.setStyleSheet(f"""
         QSlider::groove:vertical {{
             background: #444444;

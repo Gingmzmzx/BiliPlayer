@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  macos:
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.arch }}
+      - run: pip install -r requirements.txt
+      - run: playwright install chromium
+      - run: python build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BiliPlayer-macOS-${{ matrix.arch }}
+          path: dist/
+
+  windows:
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: ${{ matrix.arch }}
+      - run: pip install -r requirements.txt
+      - run: playwright install chromium
+      - run: python build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BiliPlayer-Windows-${{ matrix.arch }}
+          path: dist/
