@@ -1,4 +1,4 @@
-"""PyInstaller 打包脚本。运行: python build.py"""
+"""PyInstaller build script. Usage: python build.py"""
 
 import os
 import sys
@@ -59,9 +59,9 @@ def build():
 
     print(f"[build] {' '.join(cmd)}")
     subprocess.run(cmd, cwd=str(PROJECT_ROOT), check=True)
-    print(f"\n[build] 完成 -> dist/{APP_NAME}")
+    print(f"\n[build] Done -> dist/{APP_NAME}")
 
-    # 复制 Playwright 浏览器
+    # Copy Playwright browsers
     for base in [
         Path.home() / "Library/Caches/ms-playwright",
         Path.home() / ".cache/ms-playwright",
@@ -75,7 +75,7 @@ def build():
                 dest = PROJECT_ROOT / "dist" / APP_NAME / "ms-playwright"
             if not dest.exists():
                 shutil.copytree(base, dest)
-                print(f"[build] 浏览器已打包到 {dest}")
+                print(f"[build] Browsers copied to {dest}")
             break
 
 
