@@ -2,6 +2,11 @@ test/
 tests/
 config.json
 .idea/
+.DS_Store
+.biliplayer_config.json
+BiliPlayer/**/.DS_Store
+BiliPlayer.spec
+ms-playwright/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

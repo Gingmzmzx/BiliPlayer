@@ -18,7 +18,7 @@ from .player import BiliMusicPlayer
 from .user import User
 from .utils import prt
 from .gui import RightSideProgress
-from .config import Config, DEBUG_FLG
+from .config import Config, DEBUG_FLG, _resource
 from .web_state import SharedState
 from .web_server import start_web_server
 
@@ -158,7 +158,6 @@ async def play_main(uid, favName):
     bv_ids = [it['bvid'] for it in favList]
     titles = {it['bvid']: it['title'] for it in favList}
     covers = {it['bvid']: it.get('cover', '') for it in favList}
-    print(f"[play_main] extracted {len(bv_ids)} BVIDs: {bv_ids[:3]}...", flush=True)
     shared_state.set_playlist(bv_ids, titles, covers)
 
     biliPlayer = BiliMusicPlayer(
@@ -337,7 +336,7 @@ def main(app, uid, favName):
         from PyQt6.QtWebEngineWidgets import QWebEngineView
         webview_window = QWebEngineView()
         webview_window.setWindowTitle("BiliPlayer 控制面板")
-        webview_window.setWindowIcon(QIcon("BiliPlayer/resources/logo.png"))
+        webview_window.setWindowIcon(QIcon(_resource("BiliPlayer/resources/logo.png")))
         webview_window.resize(1100, 750)
         webview_window.setMinimumSize(900, 600)
         has_webengine = True
@@ -363,7 +362,7 @@ def main(app, uid, favName):
 
     # ---- 系统托盘图标 ----
     tray = QSystemTrayIcon()
-    tray.setIcon(QIcon("BiliPlayer/resources/logo.png"))
+    tray.setIcon(QIcon(_resource("BiliPlayer/resources/logo.png")))
     tray.setToolTip("BiliPlayer")
 
     # 菜单

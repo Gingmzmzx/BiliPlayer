@@ -1,9 +1,19 @@
-DEBUG_FLG = False
-with open("BiliPlayer/resources/stealth.js", "r", encoding="utf-8") as f:
-    STEALTH_JS = f.read()
-
-import os, json, pathlib
+import os
+import sys
+import json
+import pathlib
 from .exceptions import ConfigException
+
+
+def _resource(path):
+    """PyInstaller 打包后资源在 sys._MEIPASS 下。"""
+    base = getattr(sys, '_MEIPASS', '')
+    return os.path.join(base, path) if base else path
+
+
+DEBUG_FLG = False
+with open(_resource("BiliPlayer/resources/stealth.js"), "r", encoding="utf-8") as f:
+    STEALTH_JS = f.read()
 
 class Config:
     originData = {
@@ -29,7 +39,12 @@ class Config:
         }
     }
 
-    def __init__(self, config_path: str = os.path.join(pathlib.Path().cwd(), "config.json")) -> None:
+    def __init__(self, config_path: str = None) -> None:
+        if config_path is None:
+            if getattr(sys, 'frozen', False):
+                config_path = os.path.join(os.path.expanduser("~"), ".biliplayer_config.json")
+            else:
+                config_path = os.path.join(pathlib.Path().cwd(), "config.json")
         self.data = None
         self.configPath = config_path
         self.load()

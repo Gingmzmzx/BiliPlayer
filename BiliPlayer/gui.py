@@ -2,6 +2,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication, QWidget, QSlider, QLabel
 from PyQt6.QtCore import Qt, QPoint, QRect
+from .config import _resource
 
 
 class CustomSlider(QSlider):
@@ -189,42 +190,41 @@ class RightSideProgress(QWidget):
         self._hover_timer.start(120)
         self._was_hover = False
 
-        # 滑块样式
-        self.slider.setStyleSheet("""
-        QSlider::groove:vertical {
+        # 滑块样式（使用绝对路径适配 PyInstaller）
+        tv  = _resource("BiliPlayer/resources/bilitv.png")
+        tvh = _resource("BiliPlayer/resources/bilitv_hover.png")
+        tvp = _resource("BiliPlayer/resources/bilitv_pressed.png")
+        self.slider.setStyleSheet(f"""
+        QSlider::groove:vertical {{
             background: #444444;
             width: 6px;
             border-radius: 3px;
             margin: 0px;
             padding: 0px;
             subcontrol-position: right center;
-        }
-        QSlider::sub-page:vertical {
+        }}
+        QSlider::sub-page:vertical {{
             background: #ff99cc;
             width: 6px;
             border-radius: 3px;
             margin: 0px;
             padding: 0px;
-        }
-        /* 小电视默认状态 */
-        QSlider::handle:vertical {
-            image: url(BiliPlayer/resources/bilitv.png);
+        }}
+        QSlider::handle:vertical {{
+            image: url({tv});
             width: 20px;
             height: 18px;
             border-radius: 10px;
-            /* 向左偏移，对齐6px轨道 */
             margin: 0 0 0 -11px;
             padding: 0px;
             background: transparent;
-        }
-        /* 鼠标悬浮小电视 */
-        QSlider::handle:vertical:hover {
-            image: url(BiliPlayer/resources/bilitv_hover.png);
-        }
-        /* 鼠标按住小电视 */
-        QSlider::handle:vertical:pressed {
-            image: url(BiliPlayer/resources/bilitv_pressed.png);
-        }
+        }}
+        QSlider::handle:vertical:hover {{
+            image: url({tvh});
+        }}
+        QSlider::handle:vertical:pressed {{
+            image: url({tvp});
+        }}
         """)
 
     def _update_tooltip(self, _: int):

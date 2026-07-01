@@ -1,3 +1,4 @@
+import os
 import sys
 from PyQt6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QDialogButtonBox, QApplication,
@@ -7,7 +8,7 @@ from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 from BiliPlayer import run
-from BiliPlayer.config import Config
+from BiliPlayer.config import Config, _resource
 
 
 class SetupDialog(QDialog):
@@ -100,12 +101,20 @@ class SetupDialog(QDialog):
 
 
 if __name__ == "__main__":
+    # PyInstaller 打包后切换工作目录 + 设置 Playwright 浏览器路径
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        os.chdir(exe_dir)
+        browsers = os.path.join(exe_dir, 'ms-playwright')
+        if os.path.isdir(browsers):
+            os.environ['PLAYWRIGHT_BROWSERS_PATH'] = browsers
+
     if sys.platform == "darwin":
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_PluginApplication, True)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
     app = QApplication(sys.argv)
     app.setApplicationName("BiliPlayer")
-    app.setWindowIcon(QIcon("BiliPlayer/resources/logo.png"))
+    app.setWindowIcon(QIcon(_resource("BiliPlayer/resources/logo.png")))
 
     config = Config()
     config.autoComplete()
